@@ -1,0 +1,42 @@
+# Root workspace artifacts
+*.log
+*.zip
+*.mp4
+*.mov
+*.avi
+*.docx
+*.pptx
+*.tmp
+
+# Large AR/model/media sources are stored outside Git or in Supabase Storage.
+*.glb
+*.gltf
+*.usdz
+
+# Local generated folders
+/qr/
+/фото/
+
+# Flutter project generated files when the repository root is E:\ar.
+/Ar/flutter_application_1/.dart_tool/
+/Ar/flutter_application_1/.pub/
+/Ar/flutter_application_1/.pub-cache/
+/Ar/flutter_application_1/build/
+/Ar/flutter_application_1/coverage/
+/Ar/flutter_application_1/.flutter-plugins-dependencies
+/Ar/flutter_application_1/.codex_run_logs/
+/Ar/flutter_application_1/static_server*.log
+/Ar/flutter_application_1/assets/.env
+/Ar/flutter_application_1/android/build/
+
+# IDE files
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+*.swp

@@ -1,0 +1,506 @@
+# История проекта AR / RetroAR
+
+Дата обновления: 2026-06-19
+Рабочая папка: `E:\ar`
+Текущий Flutter-проект после распаковки: `E:\ar\Ar\flutter_application_1`
+
+## Назначение файла
+
+Этот файл нужен как точка восстановления между сессиями. После каждого изменения в проекте нужно обновлять разделы "Текущее состояние", "Что изменено" и "Следующие шаги".
+
+## Контекст продукта
+
+Делаем MVP мобильного AR-приложения на историческую тему для Волгограда.
+
+Основной пользовательский сценарий:
+1. Пользователь видит карту исторических объектов.
+2. У памятника или здания размещена табличка с QR-кодом.
+3. Пользователь сканирует QR-код в приложении.
+4. Приложение открывает исторический слой объекта: сначала 360-панорамы по эпохам, позже экспериментальный 3D/AR-режим.
+5. Пользователь переключает эпохи на временной шкале, читает справку, проходит тесты, получает монеты и достижения.
+
+Административный сценарий для следующих этапов:
+1. Администратор/муниципальное учреждение добавляет объект через веб-сервис.
+2. Сервис сохраняет объект, координаты, эпохи, панорамы/модели и генерирует QR-код.
+3. QR-код ведет на объект в мобильном приложении по `objectId` или deep link.
+
+## Найденные файлы и материалы
+
+В корне `E:\ar`:
+- `Ar (2).zip` - основной Flutter-проект.
+- `ТРЕБОВАНИЯ К ПРИЛОЖЕНИЯ.docx` - краткие сумбурные требования.
+- `Архив.docx`, `архив2.docx` - описание/паспорт стартап-проекта.
+- `Архив.pptx`, `АРхив_Сколково.pptx` - презентации проекта.
+- `AR Showreel_1.mp4` - демонстрационный ролик.
+- `фото/` - изображения и дополнительные 360-панорамы.
+
+Внутри `Ar (2).zip`:
+- Flutter-приложение: `Ar/flutter_application_1`.
+- Основные зависимости: `flutter_map`, `latlong2`, `mobile_scanner`, `panorama`, `supabase_flutter`, `provider`, `shared_preferences`, `http`, `google_generative_ai`.
+- Данные объектов: `assets/data/objects.json`.
+- Изображения объектов: `assets/images/*.jpg`.
+- Панорамы в проекте: только `assets/panoramas/mayak_1589.jpg`, `mayak_1930.jpg`, `mayak_2010.jpg`.
+- Дополнительные панорамы вне архива проекта: `фото/360маяк.jpg`, `фото/360церковь.jpg`, `фото/360шанхай.jpg` размером 1280x640.
+
+## Текущее состояние Flutter-приложения
+
+Проект распакован из `Ar (2).zip` в `E:\ar\Ar\flutter_application_1`.
+
+Реализовано или частично реализовано:
+- Авторизация, регистрация, выход и удаление аккаунта через Supabase.
+- Нижняя навигация: сканер, карта, меню, профиль.
+- Карта на `flutter_map` с OpenStreetMap и маркерами объектов из `objects.json`.
+- Детальная карточка объекта, подробная история, простые и сложные тесты.
+- Система монет, история сканирований, достижения и локальные уведомления.
+- AI-чат по исторической справке объекта.
+- Экран 360-панорамы с временной шкалой по годам.
+- MVP QR-сканер на `mobile_scanner`: камера, вспышка, смена камеры, парсинг payload/deep link, защита от повторного срабатывания, переход к исторической панораме.
+- Тестовый QR-вход на экране сканера для web/debug: поле со значением `retroar://object/mayak` и кнопка открытия без физической камеры.
+- Для объекта `nevsky_cathedral` добавлена AI-сгенерированная MVP-панорама `assets/panoramas/nevsky_cathedral.jpg`; объект "Собор Александра Невского" теперь должен попадать в доступные исторические виды.
+
+Недоделано или работает как макет:
+- QR-сценарий нужно проверить на реальном Android-устройстве с физическим QR-кодом `retroar://object/mayak`.
+- AR/3D: кнопка "Посмотреть 3D модель" показывает только snackbar.
+- Аудиогид: интерфейс есть, воспроизведения аудио нет.
+- Маршруты, навигация до точки, гео-триггеры и рекомендации рядом не реализованы.
+- Галерея фото и AI-камера времени не реализованы.
+- Для большинства объектов в `objects.json` указаны панорамы, но соответствующих файлов в assets нет.
+- AI-ключи/провайдеры требуют выноса из исходников перед публикацией.
+
+Технические замечания после распаковки:
+- Flutter CLI в текущем окружении не найден через `flutter --version` / `where flutter`.
+- `android/local.properties` содержит локальные пути старой машины: Flutter SDK `D:\va_code_sdk\flutter`, Android SDK `C:\Users\levyt\AppData\Local\Android\sdk`.
+- `.dart_tool/package_config.json` ссылается на Pub Cache старого пользователя `C:\Users\levyt\...`; после подключения Flutter нужно выполнить `flutter pub get`.
+- В проекте есть старые артефакты: `.dart_tool` около 79 МБ, `build` около 360 МБ, `windows` около 306 МБ. Перед нормальной разработкой лучше очистить generated/build-части, но не делать это без явного решения.
+- Android manifest уже содержит `INTERNET`, `CAMERA`, `FLASHLIGHT`.
+- iOS `Info.plist` содержит `NSCameraUsageDescription` для доступа к камере.
+- В `profile_screen.dart` есть переход `Navigator.pushReplacementNamed(context, '/')`, но маршрут `/` явно не объявлен в `MaterialApp`; после выхода/удаления аккаунта это может ломать навигацию.
+- В исходниках есть hardcoded Gemini API key в `ai_assistant_service.dart`; экран AI-чата сейчас использует `LLM7Service`, но ключ все равно нужно убрать перед публикацией.
+- Пользователь подключил Flutter SDK: `flutter doctor` показывает Flutter stable 3.44.2.
+- `flutter analyze` у пользователя запускался успешно и изначально нашел 8 некритичных issues: unused imports, unused field, `Container` вместо `SizedBox`, null-aware assignment.
+- Flutter SDK доступен для Codex по полному пути `F:\Flutter\flutter\bin\flutter.bat`; обычный `flutter` в PATH внутри Codex не виден.
+- Для команд Flutter из Codex нужно использовать полный путь и запуск вне sandbox, потому что SDK на диске `F:` пишет в `F:\Flutter\flutter\bin\cache`.
+- Проверка Codex: `F:\Flutter\flutter\bin\flutter.bat --version` работает, `F:\Flutter\flutter\bin\flutter.bat analyze` по проекту проходит без issues.
+- 2026-06-19: полный прогон проекта из Codex:
+  - `flutter doctor`: Android toolchain зеленый, Chrome/Web зеленый; Visual Studio для Windows desktop неполный, но это не блокирует Android/Web.
+  - `flutter pub get`: проходит.
+  - `flutter analyze`: `No issues found`.
+  - `flutter test`: не запускается, потому что папка `test` отсутствует.
+  - `flutter build web`: проходит, артефакт `build\web`; есть только предупреждение WASM dry run из-за `mobile_scanner` / `dart:html`.
+  - `flutter build apk --debug`: проходит, артефакт `build\app\outputs\flutter-apk\app-debug.apk` размером около 180 МБ.
+- 2026-06-19: проверка `flutter run` на локальных портах:
+  - `flutter run -d web-server --web-hostname 127.0.0.1 --web-port 5173` стартует и отдает debug web-сервер, но во встроенном браузере DDC debug-загрузка зависает до создания Flutter view: виден только загрузчик/пустая страница, явных ошибок в stdout/stderr нет.
+  - `flutter run -d chrome --web-hostname 127.0.0.1 --web-port 5175` и `flutter run -d edge --web-hostname 127.0.0.1 --web-port 5175` из Codex не запускают браузер: Flutter трижды пытается открыть Chrome/Edge и завершает запуск с `Failed to launch browser`.
+  - `flutter run -d web-server --release --web-hostname 127.0.0.1 --web-port 5176` проходит, создает Flutter view и визуально показывает экран авторизации `АРхив`.
+  - Практический вывод: проект реально стартует в web release; для интерактивной проверки из Codex сейчас лучше использовать `web-server --release`, а debug `web-server` считать проблемой DDC/браузерной среды.
+- 2026-06-19: проверка живого пользовательского сценария на `127.0.0.1:5176`:
+  - Вход по выданному тестовому аккаунту проходит, приложение переходит на `/#/studio` и открывает экран "Меню".
+  - Карта мест открывается, OpenStreetMap-тайлы загружаются, маркеры объектов видны.
+  - Карточка объекта с карты работает: выбран маркер "Пожарная каланча", открылась нижняя карточка, затем детальный экран объекта.
+  - На детальном экране кнопка "Посмотреть 3D модель" пока остается макетом/snackbar.
+  - Экран "Сканер" сейчас является макетом QR: реальной камеры/детекта нет, но через список "Доступные модели" можно открыть `PanoramaScreen`.
+  - Для "Пожарная каланча" `PanoramaScreen` открывается серым фоном, потому что `assets/panoramas/fire_tower.jpg` отсутствует.
+  - Для "Маяк" реальные панорамы работают: открываются `mayak_1589.jpg`, `mayak_1930.jpg`, `mayak_2010.jpg`, временная шкала переключает 1589 -> 1930 -> 2010.
+  - UX-дефект: горизонтальный список доступных моделей в web-проверке трудно прокручивается автоматизацией; "Маяк" удалось открыть нажатием на частично видимую карточку справа. Для MVP лучше вывести объекты с доступными панорамами заметнее или дать отдельную кнопку/поиск.
+- 2026-06-22: реализован и проверен MVP QR-сканер:
+  - `lib/screens/scanner_screen.dart` переведен на `StatefulWidget` и теперь использует `MobileScanner` вместо декоративного квадрата.
+  - Кнопки вспышки и смены камеры подключены к `MobileScannerController`.
+  - Добавлена защита от повторного срабатывания одного QR: при детекте сканер останавливается, после возврата с панорамы пытается стартовать снова.
+  - Добавлен парсер QR/deep link в `lib/services/qr_payload_parser.dart`. Поддерживаемые форматы: прямой id (`mayak`), `retroar://object/mayak`, URL с `/object/mayak`, URL с `objectId`, JSON с `objectId`/`id`/`slug`/`name`.
+  - Добавлен общий сервис `lib/services/panorama_availability_service.dart`, который проверяет наличие asset-панорам через `AssetManifest`.
+  - Список "Доступные модели" теперь фильтруется по реально существующим asset-панорамам, чтобы не открывать серые панорамы для объектов без файлов.
+  - При скане QR объекта без готовой панорамы приложение показывает сообщение и не открывает серый `PanoramaScreen`.
+  - Добавлен `NSCameraUsageDescription` в `ios/Runner/Info.plist`.
+  - Добавлены тесты парсера: `test/qr_payload_parser_test.dart`.
+  - В `lib/screens/object_detail_screen.dart` добавлена кнопка "Исторический вид", которая открывает `PanoramaScreen`, если у объекта есть готовые панорамы. Старая 3D-кнопка переведена в понятный экспериментальный режим.
+  - Сохранение скана в Supabase больше не блокирует открытие панорамы: если награда/статистика не сохранилась, пользователь все равно попадает в исторический вид.
+  - Проверки из Codex прошли: `dart format`, `flutter analyze`, `flutter test`, `flutter build web`.
+  - Свежая release web-версия поднята на `http://127.0.0.1:5178`; старый `5177` остановлен. В браузере проверено: вход, экран сканера, состояние "Камера недоступна" на web, список с рабочим "Маяком", открытие панорамы "Маяка".
+- 2026-06-22: повторная проверка после освобождения оперативной памяти:
+  - `flutter analyze`: `No issues found`.
+  - `flutter test`: 6 тестов QR-парсера проходят.
+  - `flutter build web`: проходит; остается ожидаемое предупреждение WASM dry run из-за `mobile_scanner` / `dart:html`.
+  - `flutter build apk --debug`: проходит, APK создан в `build\app\outputs\flutter-apk\app-debug.apk`.
+  - `http://127.0.0.1:5178/#/studio` отвечает, Flutter view создан, browser console warnings/errors нет.
+  - Встроенный браузер Codex все еще иногда таймаутится на `Page.captureScreenshot` при снимке Flutter web canvas; это не воспроизводится как ошибка Flutter-сборки.
+- Android compatibility notes:
+  - Старый `panorama: ^0.4.1` заменен на `panorama_viewer: ^2.0.7`, потому что `panorama` тянул несовместимый `motion_sensors 0.1.0` со старым Flutter Android embedding (`Registrar`).
+  - Gradle wrapper исправлен с локального `file:///D:/gradle/gradle-7.5-all` на официальный `https://services.gradle.org/distributions/gradle-8.14-all.zip`.
+  - В `android/build.gradle.kts` добавлены compatibility overrides для Android library subprojects: `namespace` fallback, `compileSdk = 36`, Java 17, Kotlin JVM target 17, кроме `dchs_motion_sensors` с Kotlin JVM target 1.8.
+  - В `android/gradle.properties` добавлено `kotlin.incremental=false`, чтобы избежать Kotlin incremental cache ошибок из-за разных дисков/корней (`C:\Users\...\Pub\Cache` и `E:\ar\...`).
+  - Остались предупреждения Flutter о будущей миграции Built-in Kotlin для app/plugins; текущую debug APK-сборку они не блокируют.
+
+## Рекомендуемая архитектура MVP
+
+Приоритет MVP:
+1. Стабильный сценарий "карта -> объект -> QR -> 360-панорамы по эпохам".
+2. QR-код хранит `objectId` или deep link вида `retroar://object/mayak`.
+3. После скана приложение ищет объект в `ObjectsProvider`, сохраняет скан в Supabase и открывает экран исторического опыта.
+4. Основной исторический опыт в MVP - 360-панорама с временной шкалой.
+5. 3D/AR оставить как экспериментальный режим для одного объекта, если появится оптимизированная `.glb` модель и будет выбран стабильный Flutter-плагин.
+
+Рекомендация по 3D:
+- Не делать "висящую модель в пустоте" как основной сценарий.
+- Для MVP лучше иметь режим "3D-сцена" с простым окружением: плоскость земли, небо/панорама как фон, модель здания, подсказки масштаба.
+- Настоящий AR с плоскостями и якорями вынести во второй этап, потому что Flutter AR-плагины и совместимость устройств могут стать главным риском.
+
+## Следующие шаги
+
+1. Распаковать Flutter-проект в рабочую папку так, чтобы можно было редактировать код.
+2. Перенести дополнительные 360-панорамы из `фото/` в `assets/panoramas/` и связать их с объектом `mayak`.
+3. Расширить модель `PanoramaYear`: добавить `description`, `mode/type` (`panorama`, позже `model3d`) и при необходимости `assetPath`.
+4. Исправить `objects.json`, чтобы все указанные assets реально существовали или имели корректные заглушки. Сейчас рабочие панорамы есть только у объекта `mayak`; остальные переходы в `PanoramaScreen` дают серый фон.
+5. Проверить настоящий QR-сценарий на Android-устройстве: камера, фокус, разрешения, повторный скан после возврата из панорамы.
+6. Сгенерировать и приложить к проекту/документации тестовый QR со значением `retroar://object/mayak` для демонстраций.
+7. После проверки на телефоне решить, нужен ли отдельный dev-only экран генерации QR или достаточно текущего тестового поля в сканере.
+8. Проверить базовые сценарии после входа/регистрации: карта, карточка объекта, открытие 360-панорамы, тесты и профиль. Запуск без входа уже подтвержден через `flutter run -d web-server --release` на `127.0.0.1:5176`.
+9. После стабилизации MVP решить, нужен ли отдельный админ-веб-сервис в этом репозитории или пока достаточно Supabase + генерации QR вне приложения.
+
+Актуальные ближайшие команды/проверки:
+1. На Android-устройстве проверить камеру и реальный QR: `F:\Flutter\flutter\bin\flutter.bat run -d <android-device-id>`.
+2. Открыть web/debug сканер и проверить тестовый вход через поле `retroar://object/mayak`.
+3. Открыть `E:\ar\qr\nevsky_cathedral_test_qr.html` на экране ПК и проверить end-to-end сканирование Собора телефоном.
+4. Открыть `E:\ar\qr\mayak_test_qr.html` на экране ПК и проверить end-to-end сканирование Маяка телефоном.
+5. Добавить реальные панорамы/заглушки для остальных объектов или скрывать их на карте до готовности исторического вида.
+
+## Что изменено в этой сессии
+
+- Создан `History.mb`.
+- Распакован `Ar (2).zip` в `E:\ar\Ar`.
+- Проведен первичный осмотр структуры, зависимостей, assets, платформенных manifest/config файлов.
+- Убраны мелкие предупреждения анализатора в:
+  - `lib/core/providers/user_provider.dart`
+  - `lib/screens/detailed_history_screen.dart`
+  - `lib/screens/object_detail_screen.dart`
+  - `lib/screens/map_screen.dart`
+  - `lib/screens/scanner_screen.dart`
+  - `lib/screens/test_screen.dart`
+  - `lib/services/notification_service.dart`
+- В окружении Codex CLI команда `flutter` пока не видна в PATH, поэтому финальный `flutter analyze` нужно повторить в пользовательском PowerShell.
+- После запуска через полный путь `F:\Flutter\flutter\bin\flutter.bat analyze` в Codex: `No issues found`.
+- Исправлена Android-сборка:
+  - `pubspec.yaml`: `panorama` заменен на `panorama_viewer`.
+  - `lib/screens/panorama_screen.dart`: импорт и виджет заменены на `panorama_viewer`.
+  - `android/gradle/wrapper/gradle-wrapper.properties`: `distributionUrl` переведен на Gradle 8.14.
+  - `android/build.gradle.kts`: добавлены compatibility настройки для Android library subprojects.
+  - `android/gradle.properties`: отключен Kotlin incremental cache.
+- Подтверждено:
+  - `flutter analyze` проходит.
+  - `flutter build web` проходит.
+  - `flutter build apk --debug` проходит, APK создан в `build\app\outputs\flutter-apk\app-debug.apk`.
+- Проверен живой web-запуск:
+  - debug `flutter run -d web-server` на `127.0.0.1:5173` поднимается, но в этой среде зависает на DDC-загрузке до Flutter view;
+  - управляемые Chrome/Edge-девайсы из Flutter не стартуют из Codex;
+  - release `flutter run -d web-server` на `127.0.0.1:5176` успешно показывает экран авторизации.
+- Проверен сценарий после входа на тестовом аккаунте:
+  - авторизация успешна;
+  - экран меню, карта, маркеры и детальная карточка объекта работают;
+  - макет сканера открывает панорамный экран через список объектов;
+  - у объектов без реальных файлов панорам виден серый экран;
+  - у объекта "Маяк" панорамы и временная шкала работают.
+- В код внесен первый реальный QR/MVP-сканер:
+  - `lib/screens/scanner_screen.dart`
+  - `lib/services/qr_payload_parser.dart`
+  - `lib/services/panorama_availability_service.dart`
+  - `test/qr_payload_parser_test.dart`
+  - `ios/Runner/Info.plist`
+- Добавлена кнопка "Исторический вид" в `lib/screens/object_detail_screen.dart`; 3D-режим помечен как экспериментальный.
+- Подтверждено после правок:
+  - `dart format` проходит.
+  - `flutter analyze`: `No issues found`.
+  - `flutter test`: 6 тестов парсера QR проходят.
+  - `flutter build web`: проходит; остается ожидаемое предупреждение WASM dry run из-за `mobile_scanner`/`dart:html`, обычную web-сборку не блокирует.
+  - `flutter run -d web-server --release --web-port 5178`: свежая версия открывается, сканер показывает только "Маяк" как доступную модель, клик по "Маяк" открывает панораму.
+- После освобождения RAM повторно подтверждено:
+  - `flutter analyze`, `flutter test`, `flutter build web`, `flutter build apk --debug` проходят.
+- 2026-06-22: добавлен тестовый QR-вход в `lib/screens/scanner_screen.dart`:
+  - обработка QR payload вынесена в общий метод `_processQrPayload`, который используют и камера, и ручной тестовый ввод.
+  - На web и в debug-сборках отображается блок "Тестовый QR" с предзаполненным payload `retroar://object/mayak`.
+  - Кнопка "Открыть" запускает тот же сценарий, что реальный QR: парсер -> поиск объекта -> проверка доступных панорам -> `PanoramaScreen`.
+  - Проверки после изменения: `dart format`, `flutter analyze`, `flutter test`, `flutter build web`, `flutter build apk --debug`.
+  - Свежая web-сборка отдается на `http://127.0.0.1:5178` через статический сервер Python, PID `12912`.
+  - Встроенный браузер подтверждает ответ сервера `200`, но скриншот Flutter canvas снова таймаутится на `Page.captureScreenshot`; это ограничение проверки, не ошибка сборки.
+- 2026-06-22: сгенерирован тестовый QR для объекта `mayak`:
+  - Payload: `retroar://object/mayak`.
+  - Файл для сканирования с экрана: `E:\ar\qr\mayak_test_qr.html`.
+  - SVG-версия: `E:\ar\qr\mayak_test_qr.svg`.
+  - Генератор без внешних зависимостей сохранен в `E:\ar\tools\generate_mayak_qr.mjs`.
+- 2026-06-22: сгенерирована первая AI-панорама для "Собор Александра Невского":
+  - Использован встроенный imagegen, не отдельный Google Imagen API.
+  - Сгенерирован исторический 2:1 вид `1774x887` в стиле реконструкции Царицына конца XIX - начала XX века.
+  - Проектный asset сохранен как `E:\ar\Ar\flutter_application_1\assets\panoramas\nevsky_cathedral.jpg`.
+  - Путь уже был прописан в `assets/data/objects.json`, поэтому правка JSON не потребовалась.
+  - QR для проверки Собора: `E:\ar\qr\nevsky_cathedral_test_qr.html`, payload `retroar://object/nevsky_cathedral`.
+  - `E:\ar\tools\generate_mayak_qr.mjs` сделан параметрическим: принимает id объекта и генерирует `qr/<id>_test_qr.html/svg`.
+  - Проверки после добавления: `flutter analyze`, `flutter test`, `flutter build web`, `flutter build apk --debug`.
+  - Web build включает `build/web/assets/assets/panoramas/nevsky_cathedral.jpg`; локальный сервер обновлен на `http://127.0.0.1:5178`, PID `20948`.
+  - AI-помощник приложения сейчас вызывается из `AIChatScreen` через `LLM7Service` (`https://api.llm7.io/v1/chat/completions`, model `default`, apiKey `unused`). Старый `AIAssistantService` на `google_generative_ai` / `gemini-2.0-flash-lite` лежит в коде, но текущим экраном не используется; перед публикацией нужно убрать hardcoded Gemini API key.
+- 2026-06-22: панорама Собора увеличена для меньшей пикселизации:
+  - Исходный файл `1774x887` сохранен как `E:\ar\Ar\flutter_application_1\assets\panoramas\nevsky_cathedral_original_1774x887.jpg`.
+  - Рабочий asset `E:\ar\Ar\flutter_application_1\assets\panoramas\nevsky_cathedral.jpg` заменен на `4096x2048`, JPEG quality 94.
+  - Это high-quality upscale, не новая генерация с настоящей детализацией; следующий качественный шаг - отдельная генерация/AI-upscale в `8192x4096`, если устройства потянут.
+  - Проверки после замены asset: `flutter build web`, `flutter build apk --debug`.
+  - Web build отдает обновленный файл `build/web/assets/assets/panoramas/nevsky_cathedral.jpg`; локальный сервер обновлен на `http://127.0.0.1:5178`, PID `22044`.
+- 2026-06-22: начат AR Optional каркас:
+  - Добавлена модель `E:\ar\Ar\flutter_application_1\lib\models\ar_experience.dart`.
+  - `HistoricalObject` теперь читает опциональные поля `arExperience` или `arAssets` из JSON.
+  - Добавлен сервис `E:\ar\Ar\flutter_application_1\lib\services\ar_experience_service.dart`, который различает состояния: AR/3D не настроен, локальные assets не найдены, внешний AR-viewer готов, локальный 3D-preview готов.
+  - На экране объекта старая заглушка 3D заменена на AR-aware кнопку `_ArExperienceButton`, которая показывает актуальный статус и не обещает AR на неподдерживаемых/неподготовленных объектах.
+  - Добавлены тесты парсинга `E:\ar\Ar\flutter_application_1\test\ar_experience_test.dart`.
+  - После восстановления лимитов проверки из Codex прошли: `dart format`, `flutter analyze`, `flutter test`, `flutter build web`, `flutter build apk --debug`.
+- 2026-06-22: добавлен запуск внешнего AR-viewer для будущих `.glb/.usdz`:
+  - `url_launcher` добавлен как прямая зависимость в `pubspec.yaml`, `flutter pub get` выполнен.
+  - Новый сервис `E:\ar\Ar\flutter_application_1\lib\services\ar_experience_launcher.dart`:
+    - Android: строит Scene Viewer intent для публичного `.glb` URL (`mode=ar_preferred`).
+    - iOS: открывает публичный `.usdz` URL через Quick Look.
+    - Web/desktop: открывает прямую ссылку на модель как 3D fallback.
+  - `_ArExperienceButton` на экране объекта теперь вызывает `ArExperienceLauncher`, если у объекта есть внешний `glbUrl`/`usdzUrl`; иначе показывает понятное сообщение, что AR/3D готовится.
+  - Проверки прошли: `flutter analyze`, `flutter test`, `flutter build web`, `flutter build apk --debug`.
+  - В проекте пока нет файлов `.glb`, `.gltf`, `.usdz`, `.obj`, `.fbx`; следующий шаг - получить/сгенерировать оптимизированную 3D-модель и разместить ее по публичному HTTPS URL.
+  - Свежая web-сборка снова отдается на `http://127.0.0.1:5178`, PID `2036`.
+- 2026-06-23: добавлено временное локальное хранилище 3D-моделей и тестовый GLB для объекта `mayak`:
+  - Полученный файл `E:\ar\1772751217527_eye (1).glb` проверен как валидный GLB v2: magic `glTF`, размер `4112536` байт.
+  - Создана папка `E:\ar\Ar\flutter_application_1\assets\models\`.
+  - Модель скопирована в проект как `E:\ar\Ar\flutter_application_1\assets\models\mayak_test.glb`.
+  - В `pubspec.yaml` добавлены `model_viewer_plus: ^1.10.0` и asset-папка `assets/models/`; `flutter pub get` выполнен.
+  - Для Android выставлен `minSdk = 24` в `android/app/build.gradle.kts` и добавлен `android:usesCleartextTraffic="true"` в `android/app/src/main/AndroidManifest.xml`, потому что `model_viewer_plus` использует локальный WebView/localhost.
+  - Для iOS в `ios/Runner/Info.plist` добавлен `io.flutter.embedded_views_preview = true`.
+  - Для web в `web/index.html` подключен `model-viewer.min.js` из assets пакета.
+  - Добавлен экран `E:\ar\Ar\flutter_application_1\lib\screens\local_model_viewer_screen.dart` с локальным 3D-preview: вращение, управление камерой, zoom, без настоящего AR-размещения.
+  - `E:\ar\Ar\flutter_application_1\assets\data\objects.json`: объект `mayak` получил `arExperience.glbAssetPath = assets/models/mayak_test.glb`.
+  - `E:\ar\Ar\flutter_application_1\lib\screens\object_detail_screen.dart`: AR/3D-кнопка открывает `LocalModelViewerScreen`, если локальный preview готов; внешний AR-viewer для будущих публичных `.glb/.usdz` оставлен.
+  - Добавлен тест `E:\ar\Ar\flutter_application_1\test\historical_object_ar_test.dart` на парсинг `arExperience` у исторического объекта.
+  - Проверки после изменения проходят: `dart format`, `flutter analyze`, `flutter test` (9 тестов), `flutter build web`, `flutter build apk --debug`.
+  - Web build включает модель по пути `build\web\assets\assets\models\mayak_test.glb`; debug APK создан в `build\app\outputs\flutter-apk\app-debug.apk`.
+  - Текущий локальный web preview доступен на `http://127.0.0.1:5178`, сервер слушает PID `2036`.
+- 2026-06-23: реализован единый экран исторического опыта для MVP:
+  - Добавлен сервис `E:\ar\Ar\flutter_application_1\lib\services\historical_experience_service.dart`.
+  - Сервис определяет, доступен ли для объекта хоть один MVP-материал: любая реально существующая панорама или готовая 3D/AR-модель.
+  - Добавлен экран `E:\ar\Ar\flutter_application_1\lib\screens\historical_experience_screen.dart`.
+  - Экран принимает `HistoricalObject`, показывает режимы `Панорама` и `3D`, если оба доступны, и использует общую временную шкалу по доступным панорамам.
+  - Для панорамы используется `PanoramaViewer`; для локальной 3D-модели используется `ModelViewer` с `assets/models/mayak_test.glb`.
+  - Для будущих внешних моделей оставлен запуск через `ArExperienceLauncher` / Scene Viewer / Quick Look.
+  - `E:\ar\Ar\flutter_application_1\lib\screens\scanner_screen.dart`: QR и тестовый QR теперь открывают `HistoricalExperienceScreen`, а не прямой `PanoramaScreen`; список в сканере переименован в "Доступный опыт" и учитывает как панорамы, так и локальный GLB.
+  - `E:\ar\Ar\flutter_application_1\lib\screens\object_detail_screen.dart`: отдельные кнопки панорамы и 3D сведены в один вход "Исторический опыт".
+  - Добавлен тест `E:\ar\Ar\flutter_application_1\test\historical_experience_service_test.dart`: проверяет, что опыт доступен при наличии хотя бы одной панорамы или локальной 3D-модели.
+  - Текстовые статусы `ArExperienceService` обновлены под уже работающий 3D-preview/launcher.
+  - Проверки после изменения проходят: `dart format`, `flutter analyze`, `flutter test` (11 тестов), `flutter build web`, `flutter build apk --debug`.
+  - `flutter build web` проходит с прежним предупреждением WASM dry run из-за `mobile_scanner` / `dart:html`; обычную web-сборку это не блокирует.
+  - `flutter build apk --debug` проходит с прежним предупреждением о будущей миграции Kotlin Gradle Plugin; текущую APK-сборку это не блокирует.
+  - Свежий web preview поднят на `http://127.0.0.1:5178`, Python PID `92`; главная страница и `assets/assets/models/mayak_test.glb` отвечают HTTP `200`.
+- 2026-06-29: начат MVP admin-системы:
+  - Добавлена Supabase SQL-схема `E:\ar\Ar\flutter_application_1\supabase\admin_mvp_schema.sql`.
+  - Схема содержит `admin_profiles`, `heritage_objects`, `heritage_epochs`, `heritage_ar_assets`, storage bucket `archive-media`, RLS-политики и helper-функцию `public.is_archive_admin()`.
+  - Схему нужно применить вручную в Supabase SQL editor; первый owner добавляется SQL-командой из комментария в конце файла.
+  - Добавлен admin-модуль:
+    - `E:\ar\Ar\flutter_application_1\lib\admin\models\admin_heritage_object.dart`
+    - `E:\ar\Ar\flutter_application_1\lib\admin\repositories\admin_repository.dart`
+    - `E:\ar\Ar\flutter_application_1\lib\admin\screens\admin_screen.dart`
+  - В `E:\ar\Ar\flutter_application_1\lib\main.dart` добавлен route `/admin`.
+  - Admin UI сейчас умеет: вход через Supabase Auth, проверка роли в `admin_profiles`, список объектов, fallback на локальные объекты из `assets/data/objects.json`, создание/редактирование базовой карточки объекта, флаг публикации, генерация/copy QR payload `retroar://object/<id>`.
+  - Если SQL-схема еще не применена или пользователь не добавлен в `admin_profiles`, экран показывает понятное блокирующее состояние и не дает сохранять.
+  - Загрузка файлов, управление эпохами и привязка панорам/3D-моделей к конкретным эпохам пока не реализованы в UI, но таблицы под это уже заложены.
+  - Добавлен тест `E:\ar\Ar\flutter_application_1\test\admin_heritage_object_test.dart`.
+  - Проверки после изменения проходят: `dart format`, `flutter analyze`, `flutter test` (13 тестов), `flutter build web`, `flutter build apk --debug`.
+  - Свежий web preview поднят на `http://127.0.0.1:5178/#/admin`, Python PID `21416`; главная страница и hash route `/admin` отвечают HTTP `200`.
+- 2026-06-29: исправлен порядок создания объектов в `E:\ar\Ar\flutter_application_1\supabase\admin_mvp_schema.sql`:
+  - Ошибка Supabase SQL Editor: `relation "public.admin_profiles" does not exist` при создании функции `public.is_archive_admin()`.
+  - Причина: функция ссылалась на `public.admin_profiles` до создания таблицы.
+  - Исправление: `create table public.admin_profiles` перенесен выше `create or replace function public.is_archive_admin()`.
+- 2026-06-29: уточнена диагностика админки и поправлена шапка `/admin`:
+  - В `supabase/admin_mvp_schema.sql` добавлены явные `GRANT` для ролей `anon` и `authenticated`, чтобы PostgREST/Supabase API видел созданные таблицы при включенном RLS.
+  - `lib/admin/repositories/admin_repository.dart` теперь показывает URL Supabase-проекта из `SUPABASE_URL` и конкретную ошибку Supabase/PostgREST вместо общего сообщения.
+  - `lib/admin/screens/admin_screen.dart`: email, обновление и выход собраны в аккуратный правый блок; выход стал кнопкой `Выйти`, а не одинокой иконкой.
+  - Проверки после изменения: `dart format` для Dart-файлов, `flutter analyze`, `flutter test` (13 тестов), `flutter build web`.
+  - Web preview перезапущен на `http://127.0.0.1:5178/#/admin`, Python PID `9768`.
+- 2026-06-29: исправлена RLS-рекурсия в `supabase/admin_mvp_schema.sql`:
+  - Ошибка в админке: `42P17 infinite recursion detected in policy for relation "admin_profiles"`.
+  - Причина: policy `owners can manage admin profiles` напрямую читала `public.admin_profiles` внутри политики этой же таблицы.
+  - Добавлена `security definer` функция `public.is_archive_owner()`.
+  - Policies для `admin_profiles` теперь используют `public.is_archive_owner()` вместо прямого self-query.
+- 2026-06-29: добавлен импорт локального JSON в Supabase-админку:
+  - Причина: после успешного применения SQL-схемы таблицы `heritage_objects`, `heritage_epochs`, `heritage_ar_assets` пустые, потому что текущие 6 объектов все еще живут в `assets/data/objects.json`.
+  - В `supabase/admin_mvp_schema.sql` добавлены уникальные индексы:
+    - `heritage_epochs_object_year_key` на `(object_id, year)`
+    - `heritage_ar_assets_object_title_key` на `(object_id, title)`
+  - `lib/admin/repositories/admin_repository.dart`: добавлен `importLocalObjects()`, который импортирует локальные объекты, эпохи/панорамы и 3D/AR assets из JSON в Supabase.
+  - `lib/admin/screens/admin_screen.dart`: в списке объектов добавлена кнопка с иконкой загрузки (`Импортировать локальный JSON`), доступная только активному админу при готовой схеме.
+  - Импорт идемпотентный: повторный запуск обновляет объекты/эпохи/AR-ассеты, а не должен плодить дубли благодаря `onConflict`.
+  - Проверки после изменения: `dart format`, `flutter analyze`, `flutter test` (13 тестов), `flutter build web`.
+  - Web preview перезапущен на `http://127.0.0.1:5178/#/admin`, Python PID `6684`.
+- 2026-06-29: начата реализация управления эпохами в `/admin`:
+  - Добавлена модель `E:\ar\Ar\flutter_application_1\lib\admin\models\admin_epoch.dart` для строк `heritage_epochs`.
+  - Добавлен web-only сервис выбора панорамы:
+    - `E:\ar\Ar\flutter_application_1\lib\admin\services\admin_media_picker.dart`
+    - `E:\ar\Ar\flutter_application_1\lib\admin\services\admin_media_picker_stub.dart`
+    - `E:\ar\Ar\flutter_application_1\lib\admin\services\admin_media_picker_web.dart`
+  - `E:\ar\Ar\flutter_application_1\lib\admin\repositories\admin_repository.dart`: добавлены методы `loadEpochs()`, `upsertEpoch()`, `deleteEpoch()` и `uploadPanorama()`.
+  - Панорамы грузятся в публичный Supabase Storage bucket `archive-media`, путь строится как `objects/<object_id>/panoramas/<year>-<timestamp>-<file>`, публичная ссылка возвращается через `getPublicUrl()`.
+  - `E:\ar\Ar\flutter_application_1\lib\admin\screens\admin_screen.dart`: в карточку объекта добавлен UI-раздел `Эпохи и панорамы`.
+  - Раздел умеет: подгружать эпохи выбранного объекта, выбирать эпоху из списка, создавать новую, редактировать год/название/описание/sort order/публикацию, удалять сохраненную эпоху, выбирать файл панорамы в web-админке и записывать публичный URL в `panorama_url`.
+  - Добавлен тест `E:\ar\Ar\flutter_application_1\test\admin_epoch_test.dart` на парсинг и payload модели `AdminEpoch`.
+  - В `admin_media_picker_web.dart` добавлено точечное подавление lint для deprecated `dart:html`: сервис используется только через conditional export для web MVP.
+  - Проверки после изменения:
+    - `dart format .\lib\admin .\test\admin_epoch_test.dart`
+    - `flutter analyze` - без issues
+    - `flutter test` - 15 тестов, все проходят
+    - `flutter build web` - успешно; осталось прежнее WASM dry-run предупреждение от `mobile_scanner`
+    - `flutter build apk --debug` - успешно; осталось прежнее предупреждение Flutter о будущей миграции Kotlin Gradle Plugin
+  - Локальный web preview перезапущен на `http://127.0.0.1:5178/#/admin`, Python PID `28640`; главная страница отвечает HTTP `200`.
+  - Во встроенном браузере `/admin` открылся без console error; визуально проверен новый блок `Эпохи и панорамы` на объекте `water_mill`.
+  - Следующий шаг: подключить мобильное приложение к Supabase-данным вместо локального `assets/data/objects.json`, чтобы созданные в админке эпохи/панорамы появились у пользователей без пересборки приложения.
+- 2026-06-29: начато подключение пользовательского приложения к Supabase-данным:
+  - `E:\ar\Ar\flutter_application_1\lib\models\panorama_year.dart`: добавлен getter `isRemoteImage`, чтобы приложение различало локальные asset-панорамы и публичные URL из Supabase Storage.
+  - QR-логика: payload уже генерируется автоматически как `retroar://object/<id>`; отдельная генерация картинки QR для печати пока не реализована в admin UI.
+  - `E:\ar\Ar\flutter_application_1\lib\data\repositories\objects_repository.dart`: `loadObjects()` теперь сначала читает опубликованные `heritage_objects`, `heritage_epochs`, `heritage_ar_assets` из Supabase, а при ошибке/пустой базе возвращается к локальному JSON.
+  - В `ObjectsRepository` добавлен `loadLocalObjects()` для админского импорта seed-данных и `mapSupabaseRows()` для тестируемого маппинга Supabase-строк в `HistoricalObject`.
+  - Для известных объектов вопросы и часть fallback-полей подтягиваются из локального JSON по `id`, потому что таблиц вопросов в Supabase-схеме пока нет.
+  - `E:\ar\Ar\flutter_application_1\lib\admin\repositories\admin_repository.dart`: импорт локального JSON теперь явно использует `ObjectsRepository.loadLocalObjects()`, чтобы не импортировать обратно уже загруженные Supabase-объекты.
+  - `E:\ar\Ar\flutter_application_1\lib\services\historical_experience_service.dart` и `panorama_availability_service.dart`: remote `http/https` панорамы теперь считаются доступными материалами.
+  - `E:\ar\Ar\flutter_application_1\lib\screens\historical_experience_screen.dart` и `panorama_screen.dart`: панорамы из URL рендерятся через `Image.network`, локальные панорамы по-прежнему через `Image.asset`.
+  - Добавлен тест `E:\ar\Ar\flutter_application_1\test\objects_repository_supabase_mapper_test.dart` на сборку `HistoricalObject` из Supabase-строк.
+  - `E:\ar\Ar\flutter_application_1\test\historical_experience_service_test.dart`: добавлена проверка remote panorama URL.
+  - Проверки после изменения:
+    - `dart format` для измененных Dart-файлов
+    - `flutter analyze` - без issues
+    - `flutter test` - 18 тестов, все проходят
+    - `flutter build web` - успешно; осталось прежнее WASM dry-run предупреждение от `mobile_scanner`
+    - `flutter build apk --debug` - успешно; осталось прежнее предупреждение Flutter о будущей миграции Kotlin Gradle Plugin
+  - Web preview перезапущен на `http://127.0.0.1:5178`, Python PID `22336`; главная страница отвечает HTTP `200`.
+  - Во встроенном браузере пользовательский маршрут `/#/studio` открылся без console error; экран карты отрисовал OSM-тайлы и маркеры объектов.
+  - Следующий шаг: добавить в admin UI кнопку/экран генерации QR-картинки для печати, потому что сейчас автоматически генерируется только payload `retroar://object/<id>`.
+- 2026-06-29: начата генерация QR-картинки в admin UI:
+  - Добавлена зависимость `qr_flutter: ^4.1.0` через `flutter pub add qr_flutter`; она подтянула пакет `qr`.
+  - `E:\ar\Ar\flutter_application_1\lib\admin\screens\admin_screen.dart`: блок QR в карточке объекта теперь показывает реальный QR preview для payload `retroar://object/<id>`, умеет копировать payload и генерировать PNG через `QrPainter`.
+  - Добавлен web-only сервис скачивания PNG:
+    - `E:\ar\Ar\flutter_application_1\lib\admin\services\admin_qr_downloader.dart`
+    - `E:\ar\Ar\flutter_application_1\lib\admin\services\admin_qr_downloader_stub.dart`
+    - `E:\ar\Ar\flutter_application_1\lib\admin\services\admin_qr_downloader_web.dart`
+  - На web кнопка `Скачать PNG` скачивает файл вида `retroar_<object_id>_qr.png`; на других платформах сборка остается рабочей, но автоматическое скачивание возвращает fallback-сообщение.
+  - Добавлен тест `E:\ar\Ar\flutter_application_1\test\admin_qr_downloader_test.dart` на безопасное имя файла.
+  - Следующее изменение: форматирование, анализ, тесты, сборки и визуальная проверка `/admin`.
+- 2026-06-29: завершена генерация QR-картинки в admin UI:
+  - Проверки после изменения:
+    - `flutter analyze` - без issues
+    - `flutter test` - 19 тестов, все проходят
+    - `flutter build web` - успешно; осталось прежнее WASM dry-run предупреждение от `mobile_scanner`
+    - `flutter build apk --debug` - успешно; осталось прежнее предупреждение Flutter о будущей миграции Kotlin Gradle Plugin
+  - Локальный web preview перезапущен на `http://127.0.0.1:5178/#/admin`, Python PID `29972`; главная страница отвечает HTTP `200`.
+  - Во встроенном браузере `/admin` открылся без console error. После reload подтянулась новая web-сборка; визуально проверен QR-блок на объекте `water_mill`: реальный QR preview, payload `retroar://object/water_mill`, кнопки `Скопировать` и `Скачать PNG`.
+  - Текущее состояние: QR для таблички теперь генерируется автоматически по `object_id` в карточке объекта. Для печати администратор может скачать PNG; payload остается совместимым со сканером приложения.
+  - Следующий шаг: добавить управление 3D/AR-ассетами в admin UI, чтобы администратор мог прикреплять `.glb`/внешний URL к объекту и эпохе, а не только редактировать панорамы.
+- 2026-06-29: добавлено управление 3D/AR-ассетами в admin UI:
+  - Добавлена модель `E:\ar\Ar\flutter_application_1\lib\admin\models\admin_ar_asset.dart` для строк `heritage_ar_assets`.
+  - `E:\ar\Ar\flutter_application_1\lib\admin\repositories\admin_repository.dart`: добавлены `loadArAssets()`, `upsertArAsset()`, `deleteArAsset()` и `uploadArModel()`.
+  - 3D-файлы `.glb/.usdz` загружаются в публичный Supabase Storage bucket `archive-media`, путь строится как `objects/<object_id>/models/<timestamp>-<file>`, публичная ссылка возвращается через `getPublicUrl()`.
+  - `E:\ar\Ar\flutter_application_1\lib\admin\services\admin_media_picker_web.dart` и stub: picker расширен до `pickFile(accept: ...)`, а `pickImage()` оставлен для существующей загрузки панорам.
+  - `E:\ar\Ar\flutter_application_1\lib\admin\screens\admin_screen.dart`: в карточку объекта добавлен UI-раздел `3D/AR ассеты`.
+  - Раздел умеет: подгружать ассеты выбранного объекта, выбирать строку из списка, создавать новую, редактировать `title`, `glb_url`, `usdz_url`, `glb_asset_path`, `usdz_asset_path`, `scale`, `placement`, публикацию, удалять сохраненный ассет, выбирать `.glb/.usdz` в web-админке и записывать публичный URL в нужное поле.
+  - Добавлен тест `E:\ar\Ar\flutter_application_1\test\admin_ar_asset_test.dart` на парсинг и payload модели `AdminArAsset`.
+  - Проверки после изменения:
+    - `dart format` для измененных Dart-файлов
+    - `flutter analyze` - без issues
+    - `flutter test` - 21 тест, все проходят
+    - `flutter build web` - успешно; осталось прежнее WASM dry-run предупреждение от `mobile_scanner`
+    - `flutter build apk --debug` - успешно; осталось прежнее предупреждение Flutter о будущей миграции Kotlin Gradle Plugin
+  - Локальный web preview перезапущен на `http://127.0.0.1:5178/#/admin`, Python PID `14428`; главная страница отвечает HTTP `200`.
+  - Во встроенном браузере `/admin` открылся без console error. Визуально проверен новый блок `3D/AR ассеты`; на объекте `Маяк` подтянулся существующий `mayak_default` с `glb_asset_path` = `assets/models/mayak_test.glb`.
+  - Следующий шаг: переходить к AR-режиму через камеру/псевдо-AR viewer на телефоне, используя уже управляемые из админки `.glb`/`.usdz` ссылки и учитывая fallback для устройств без ARCore/Scene Viewer.
+- 2026-06-30: добавлена привязка 3D/AR-моделей к временным эпохам:
+  - `E:\ar\Ar\flutter_application_1\supabase\admin_mvp_schema.sql`: в `heritage_ar_assets` добавлена колонка `epoch_year text` через `alter table ... add column if not exists`, плюс индекс `(object_id, epoch_year)`.
+  - Старые ассеты без `epoch_year` остаются общими для всех эпох объекта. Новые ассеты можно привязать к конкретному году/периоду из временной шкалы.
+  - `E:\ar\Ar\flutter_application_1\lib\admin\models\admin_ar_asset.dart`: модель админки теперь парсит и сохраняет `epoch_year`.
+  - `E:\ar\Ar\flutter_application_1\lib\admin\screens\admin_screen.dart`: в блоке `3D/AR ассеты` добавлен dropdown `Эпоха модели` со значением `Все эпохи` и годами из раздела `Эпохи и панорамы`; при создании нового ассета автоматически подставляется выбранная эпоха, если она есть.
+  - `E:\ar\Ar\flutter_application_1\lib\admin\repositories\admin_repository.dart`: `loadArAssets()` читает `epoch_year`, но умеет fallback-чтение старой схемы без этой колонки; при сохранении с не примененной миграцией показывает понятное сообщение о необходимости повторно применить SQL.
+  - `E:\ar\Ar\flutter_application_1\lib\models\ar_experience.dart` и `historical_object.dart`: пользовательская модель данных теперь поддерживает список `arExperiences` и выбор модели через `arExperienceForYear(year)`.
+  - `E:\ar\Ar\flutter_application_1\lib\data\repositories\objects_repository.dart`: Supabase-маппинг собирает все опубликованные AR-ассеты объекта, а не только первый; чтение тоже совместимо со старой схемой без `epoch_year`.
+  - `E:\ar\Ar\flutter_application_1\lib\services\ar_experience_service.dart`, `historical_experience_service.dart`, `screens/historical_experience_screen.dart`: 3D-режим выбирает модель под текущую эпоху временной шкалы; общий ассет без `epoch_year` используется как fallback.
+  - Добавлены/обновлены тесты:
+    - `E:\ar\Ar\flutter_application_1\test\admin_ar_asset_test.dart`
+    - `E:\ar\Ar\flutter_application_1\test\ar_experience_test.dart`
+    - `E:\ar\Ar\flutter_application_1\test\historical_object_ar_test.dart`
+    - `E:\ar\Ar\flutter_application_1\test\historical_experience_service_test.dart`
+    - `E:\ar\Ar\flutter_application_1\test\objects_repository_supabase_mapper_test.dart`
+  - Проверки после изменения:
+    - `flutter analyze` - без issues
+    - `flutter test` - 23 теста, все проходят
+    - `flutter build web` - успешно; осталось прежнее WASM dry-run предупреждение от `mobile_scanner`
+    - `flutter build apk --debug` - успешно; осталось прежнее предупреждение Flutter о будущей миграции Kotlin Gradle Plugin
+  - Локальный web preview перезапущен на `http://127.0.0.1:5178/#/admin`, Python PID `8860`; главная страница отвечает HTTP `200`.
+  - Во встроенном браузере `/admin` проверен без console error. На объекте `Маяк` старый `mayak_default` загрузился как `all-epochs`, поле `Эпоха модели` отображается как `Все эпохи`.
+  - Важно: чтобы сохранять новую привязку эпох в Supabase, нужно повторно применить обновленный `supabase/admin_mvp_schema.sql` в Supabase SQL Editor. До этого старые ассеты читаются, но сохранение `epoch_year` вернет сообщение о миграции.
+  - Следующий шаг: после применения SQL проверить сохранение ассета с конкретной эпохой в живой Supabase, затем перейти к AR-режиму камеры/Scene Viewer fallback на телефоне.
+- 2026-06-30: подтверждена миграция `epoch_year` в живой Supabase:
+  - Пользователь повторно применил обновленный `E:\ar\Ar\flutter_application_1\supabase\admin_mvp_schema.sql` в Supabase SQL Editor.
+  - Read-only проверка Supabase REST `heritage_ar_assets?select=id,object_id,title,epoch_year&limit=1` прошла успешно; у существующего `mayak_default` колонка `epoch_year` читается как `null`.
+  - Authenticated write-smoke: создан временный unpublished ассет `codex_epoch_write_test_20260630133832` для `object_id = mayak`, `epoch_year = 1930`, `glb_asset_path = assets/models/mayak_test.glb`.
+  - Временный ассет был прочитан обратно с `epoch_year = 1930` и затем удален; `deleted_count = 1`.
+  - Рабочий ассет `mayak_default` не изменялся.
+  - Следующий шаг: реализовать/проверить AR-режим на телефоне: сначала надежный 3D/Scene Viewer fallback по `.glb`, затем камера-поверхность/псевдо-AR для устройств без полноценного ARCore.
+- 2026-06-30: уточнена схема хранения и включен первый AR/Scene Viewer fallback для 3D-моделей:
+  - Модели могут быть двух типов: локальный `glb_asset_path` внутри Flutter assets для тестового preview или публичный `glb_url`/`usdz_url` из Supabase Storage для настоящего AR на телефоне.
+  - Админка уже загружает `.glb/.usdz` в публичный Supabase Storage bucket `archive-media` и сохраняет публичную ссылку в `heritage_ar_assets.glb_url` / `usdz_url`.
+  - Важно: Android Scene Viewer не сможет открыть локальный Flutter asset `assets/models/...`; ему нужен публичный `https` URL. Поэтому текущий `mayak_default` с `glb_asset_path = assets/models/mayak_test.glb` работает как 3D-preview, но для AR надо загрузить модель через админку в Supabase и получить `glb_url`.
+  - `E:\ar\Ar\flutter_application_1\lib\screens\historical_experience_screen.dart`: 3D-сцена теперь предпочитает `glb_url`, затем fallback на `glb_asset_path`; `ModelViewer` показывает и локальные, и удаленные модели.
+  - Для удаленных моделей включены параметры `model_viewer_plus`: `ar`, `arModes = scene-viewer/webxr/quick-look`, `ArScale.auto`, `ArPlacement.floor/wall`, `iosSrc`.
+  - В 3D-сцене добавлена компактная кнопка `AR`: красная, если есть публичный URL для внешнего viewer; серая, если есть только локальный preview, и тогда открытие показывает сообщение, что нужен публичный `.glb` URL.
+  - `E:\ar\Ar\flutter_application_1\lib\screens\local_model_viewer_screen.dart`: отдельный экран просмотра модели также перешел на приоритет `glb_url -> glb_asset_path` и получил те же AR-параметры для публичных моделей.
+  - `E:\ar\Ar\flutter_application_1\lib\services\ar_experience_service.dart`: добавлены флаги доступности preview и публичного URL, чтобы UI различал локальный 3D-preview и настоящий внешний AR.
+  - `E:\ar\Ar\flutter_application_1\android\app\src\main\AndroidManifest.xml`: добавлены Android package visibility queries для `com.google.ar.core`, `com.google.android.googlequicksearchbox` и `android.intent.action.VIEW` по `https`.
+  - Проверки после изменения:
+    - `dart format` для измененных Dart-файлов
+    - `flutter analyze` - без issues
+    - `flutter test` - 23 теста, все проходят
+    - `flutter build web` - успешно; осталось прежнее WASM dry-run предупреждение от `mobile_scanner`
+    - `flutter build apk --debug` - успешно; осталось прежнее предупреждение Flutter о будущей миграции Kotlin Gradle Plugin
+  - Следующий шаг: на телефоне загрузить через админку реальный `.glb` для `Маяка` в Supabase Storage, привязать его к эпохе, открыть объект в приложении и проверить кнопку `AR` через Scene Viewer.
+- 2026-06-30: перевели MVP на серверное хранение 3D-моделей и добавили индикатор загрузки:
+  - `E:\ar\Ar\flutter_application_1\pubspec.yaml`: удалена строка `assets/models/` из Flutter assets, поэтому `.glb` больше не попадают в APK и не раздувают вес приложения. Файл `E:\ar\Ar\flutter_application_1\assets\models\mayak_test.glb` оставлен на диске как исходник/пример для загрузки, но не бандлится.
+  - Добавлен `E:\ar\Ar\flutter_application_1\lib\widgets\loading_model_viewer.dart`: общий wrapper над `ModelViewer`, который показывает `Загружаем 3D-модель`, слушает события `progress/load/error` из `<model-viewer>` через JavaScript channel на мобильном WebView и сбрасывает состояние при смене URL/эпохи.
+  - `E:\ar\Ar\flutter_application_1\lib\screens\historical_experience_screen.dart` и `local_model_viewer_screen.dart`: 3D-просмотр теперь использует `LoadingModelViewer`; модель скачивается при входе в режим просмотра, а `scale` из админки передается в `<model-viewer>`.
+  - `E:\ar\Ar\flutter_application_1\lib\admin\screens\admin_screen.dart`: после upload `.glb/.usdz` в Supabase Storage публичная ссылка записывается в `glb_url`/`usdz_url`, а соответствующий legacy `*_asset_path` очищается. Поля `glb_asset_path/usdz_asset_path` спрятаны в блок `Legacy/local asset paths`.
+  - `E:\ar\Ar\flutter_application_1\lib\services\ar_experience_service.dart`: сообщения обновлены так, чтобы локальные asset paths считались legacy/dev fallback, а релизный путь был через Supabase Storage URL.
+  - Тестовая модель Маяка загружена в публичный Supabase Storage по URL `https://kzegyfrwoilxwbrbgnen.supabase.co/storage/v1/object/public/archive-media/objects/mayak/models/mayak_test.glb`; HEAD-проверка публичной ссылки вернула `200`, `Content-Type = model/gltf-binary`, `Content-Length = 4112536`.
+  - В live Supabase строка `heritage_ar_assets` для `object_id = mayak`, `title = mayak_default`, `id = 46985801-b709-42e9-86b8-021e414f6082` обновлена: `glb_url` указывает на публичный Storage URL, `glb_asset_path = null`, `published = true`.
+  - `E:\ar\Ar\flutter_application_1\assets\data\objects.json`: fallback-данные Маяка тоже переведены с `glbAssetPath` на серверный `glbUrl`, чтобы приложение не искало модель внутри APK даже без Supabase-таблицы.
+  - Проверки после изменения:
+    - `dart format` для измененных Dart-файлов
+    - `objects.json` успешно парсится через `ConvertFrom-Json`
+    - `flutter analyze` - без issues
+    - `flutter test` - 23 теста, все проходят
+    - `flutter build web` - успешно; осталось прежнее WASM dry-run предупреждение от `mobile_scanner`
+    - `flutter build apk --debug` успешно проходил после удаления `assets/models/` и добавления loading viewer; архив APK проверен через `tar`, `mayak_test.glb`/`assets/models` внутри нет. После последней JSON-правки повторный APK build не был запущен из-за лимита Codex на внешние Flutter-команды, но Dart-код и JSON уже проверены.
+  - Следующий шаг: запустить приложение на телефоне, открыть Маяк -> 3D/AR, проверить, что появляется индикатор загрузки, затем модель скачивается с Supabase и кнопка `AR` открывает Scene Viewer.
+- 2026-06-30: начата проектная документация:
+  - `E:\ar\Ar\flutter_application_1\README.md` заменен со стандартной Flutter-заглушки на рабочий README проекта.
+  - Добавлены основные команды: `flutter doctor`, `pub get`, `analyze`, `test`, `run -d chrome --web-port 5176`, `devices`, `run -d <device-id> --device-timeout 120`, `build web`, `build apk --debug`, проверка APK через `tar`.
+  - Описаны Android-заметки: `not authorized`, `INSTALL_FAILED_USER_RESTRICTED`, `doctor --android-licenses`, Developer Mode для symlink support.
+  - Описаны Supabase Dashboard/SQL Editor, файл `supabase/admin_mvp_schema.sql`, основные таблицы и bucket `archive-media`.
+  - Зафиксирована целевая схема 3D/AR: модели лежат в Supabase Storage, клиент скачивает их при входе в 3D/AR, основные поля `glb_url/usdz_url`, legacy `glb_asset_path/usdz_asset_path` оставлены только для совместимости.
+  - Добавлены QR payload, текущий статус MVP, ближайшая проверка на телефоне и ссылка на `E:\ar\History.mb` как журнал восстановления контекста.
+- 2026-06-30: диагностирован web debug routing/blank page:
+  - Пользователь запустил `flutter.bat run -d chrome --web-port 5176`, но во встроенном браузере/стороннем браузере `/#/admin` и `/#/studio` визуально не открывались.
+  - Проверка `http://127.0.0.1:5176/`, `/admin`, `/studio`, `/#/admin`, `/#/studio` возвращала HTTP 200, а в `lib/main.dart` роуты `/admin` и `/studio` объявлены.
+  - Через browser inspection выяснено: на `5176` debug-сервер отдает Flutter DDC bundle, грузится больше тысячи DDC-скриптов, но во встроенном браузере Flutter не доходит до создания `flt-glass-pane`; ошибок консоли нет. Это похоже на зависание debug-сборки Flutter web вне того Chrome, который открыл сам `flutter run -d chrome`, а не на проблему роутов.
+  - `E:\ar\Ar\flutter_application_1\README.md` дополнен предупреждением: в режиме `flutter run -d chrome` пользоваться окном Chrome, которое Flutter открыл сам; для стабильной проверки в любом браузере использовать `flutter build web` + `python -m http.server <port> -d .\build\web`.
+  - Рекомендованные адреса остаются `http://127.0.0.1:<port>/#/admin` и `http://127.0.0.1:<port>/#/studio`.
+- 2026-06-30: после остановки старого Flutter пользователем запущен новый web-server:
+  - Порт `5176` был свободен.
+  - Запущено из `E:\ar\Ar\flutter_application_1`: `F:\Flutter\flutter\bin\flutter.bat run -d web-server --web-port 5176`.
+  - Логи пишутся в `E:\ar\Ar\flutter_application_1\.codex_run_logs\flutter_web_server.out.log` и `.err.log`.
+  - Активные процессы: `dartvm` PID `25288`, `dart` PID `17208`; порт `5176` слушает PID `25288`.
+  - Проверка HTTP: `http://localhost:5176/` и `http://127.0.0.1:5176/` возвращают `200`.
+  - Во встроенном браузере свежая вкладка успешно открыла `http://127.0.0.1:5176/#/admin`: видна админка `АРхив admin` со списком объектов.
+  - `http://127.0.0.1:5176/#/studio` тоже открылся: виден экран `Меню` приложения.
+  - Для остановки скрытого web-server использовать `Stop-Process -Id 25288,17208`.
+- 2026-06-30: подготовка workspace к заливке на GitHub:
+  - В корне `E:\ar` инициализирован Git-репозиторий через `git init`. До этого папка `.git` существовала, но была пустой/невалидной, поэтому `git status` не работал.
+  - Добавлен корневой `E:\ar\.gitignore`: игнорируются логи, zip/mp4/docx/pptx, локальные `.glb/.gltf/.usdz`, `qr/`, `фото/`, Flutter build/cache директории, `.codex_run_logs`, локальный Supabase env.
+  - Обновлен `E:\ar\Ar\flutter_application_1\.gitignore`: добавлены `.codex_run_logs/`, `static_server*.log`, `assets/.env`, `assets/models/`, `.glb/.gltf/.usdz`, `android/build/`.
+  - `E:\ar\Ar\flutter_application_1\pubspec.yaml`: стандартное описание `A new Flutter project` заменено на описание исторического AR MVP.
+  - Полностью переписан `E:\ar\Ar\flutter_application_1\README.md`: добавлены статус MVP, список проделанной работы, архитектура, структура проекта, требования, запуск web/Android, команды проверок, Supabase, web-админка, QR, панорамы, 3D/AR, тесты, GitHub checklist, ограничения и roadmap.
+  - Добавлен корневой `E:\ar\README.md` как entrypoint для GitHub, если репозиторий публикуется от корня workspace.
+  - Добавлен `E:\ar\Ar\flutter_application_1\assets\.env.example` без реальных значений; локальный `assets/.env` остается на машине, но теперь игнорируется Git.
+  - Проведен поиск явных секретов/паролей по проекту: пароль админ-аккаунта в файлах не найден. Supabase используется через public/publishable key в локальном `assets/.env`; service role key в проект не добавлялся.
+  - `git add -n .` проверен после настройки ignore. В будущий коммит попадают код, README, Supabase schema, тесты, fallback images/panoramas, `History.mb` и `tools/generate_mayak_qr.mjs`; не попадают `.env`, `.glb`, build/cache, логи, zip/mp4/docx/pptx.
+  - Коммит и push не выполнялись: remote GitHub URL неизвестен, а перед первым коммитом пользователь может решить, публиковать весь `E:\ar` или только `E:\ar\Ar\flutter_application_1`.
