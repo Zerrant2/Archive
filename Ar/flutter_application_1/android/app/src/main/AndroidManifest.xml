@@ -1,10 +1,17 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <uses-sdk tools:overrideLibrary="com.uhg0.ar_flutter_plugin_2" />
+
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.FLASHLIGHT" />
 
     <uses-feature android:name="android.hardware.camera" android:required="true" />
     <uses-feature android:name="android.hardware.camera.autofocus" />
+    <uses-feature
+        android:name="android.hardware.camera.ar"
+        android:required="false"
+        tools:node="replace" />
 
     <application
         android:label="flutter_application_1"
@@ -36,6 +43,7 @@
 
     <queries>
         <package android:name="com.google.ar.core" />
+        <package android:name="com.google.android.gms" />
         <package android:name="com.google.android.googlequicksearchbox" />
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>

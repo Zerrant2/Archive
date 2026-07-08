@@ -52,6 +52,7 @@ class _PanoramaScreenState extends State<PanoramaScreen> {
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
+    final viewPadding = MediaQuery.viewPaddingOf(context);
     final currentPanorama = _sortedPanoramas[_currentPanoramaIndex];
     final panoramaImage = currentPanorama.isRemoteImage
         ? Image.network(
@@ -84,7 +85,7 @@ class _PanoramaScreenState extends State<PanoramaScreen> {
             left: 0,
             right: 0,
             child: Container(
-              height: 105,
+              height: 105 + viewPadding.top,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
@@ -100,7 +101,7 @@ class _PanoramaScreenState extends State<PanoramaScreen> {
                 children: [
                   Positioned(
                     left: 11,
-                    top: 9,
+                    top: 9 + viewPadding.top,
                     child: GestureDetector(
                       onTap: () => Navigator.pop(context),
                       child: Container(
@@ -120,7 +121,7 @@ class _PanoramaScreenState extends State<PanoramaScreen> {
                   ),
                   Positioned(
                     left: 45,
-                    top: 13,
+                    top: 13 + viewPadding.top,
                     child: Text(
                       widget.objectName,
                       style: const TextStyle(
@@ -132,7 +133,7 @@ class _PanoramaScreenState extends State<PanoramaScreen> {
                   ),
                   Positioned(
                     right: 20,
-                    top: 15,
+                    top: 15 + viewPadding.top,
                     child: GestureDetector(
                       onTap: () =>
                           setState(() => _showInfoPanel = !_showInfoPanel),
@@ -169,7 +170,7 @@ class _PanoramaScreenState extends State<PanoramaScreen> {
           ),
 
           Positioned(
-            bottom: 50,
+            bottom: 50 + viewPadding.bottom,
             left: 0,
             right: 0,
             child: _buildTimeline(screenWidth),
@@ -177,7 +178,7 @@ class _PanoramaScreenState extends State<PanoramaScreen> {
 
           if (_showInfoPanel)
             Positioned(
-              bottom: 120,
+              bottom: 120 + viewPadding.bottom,
               left: 16,
               right: 16,
               child: _buildInfoPanel(currentPanorama),

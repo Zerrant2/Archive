@@ -6,11 +6,8 @@ import '../theme/app_colors.dart';
 
 class AIChatScreen extends StatefulWidget {
   final HistoricalObject object;
-  
-  const AIChatScreen({
-    super.key,
-    required this.object,
-  });
+
+  const AIChatScreen({super.key, required this.object});
 
   @override
   State<AIChatScreen> createState() => _AIChatScreenState();
@@ -29,25 +26,28 @@ class _AIChatScreenState extends State<AIChatScreen> {
   }
 
   void _addWelcomeMessage() async {
-    _messages.add(ChatMessage(
-      text: "Здравствуйте! 👋 Я исторический ассистент «${widget.object.name}». Рад помочь вам узнать больше об этом удивительном месте! Задавайте любые вопросы 😊",
-      isUser: false,
-    ));
+    _messages.add(
+      ChatMessage(
+        text:
+            "Здравствуйте! 👋 Я исторический ассистент «${widget.object.name}». Рад помочь вам узнать больше об этом удивительном месте! Задавайте любые вопросы 😊",
+        isUser: false,
+      ),
+    );
     setState(() {});
   }
 
   void _sendMessage() async {
     final question = _messageController.text.trim();
     if (question.isEmpty) return;
-    
+
     setState(() {
       _messages.add(ChatMessage(text: question, isUser: true));
       _messageController.clear();
       _isLoading = true;
     });
-    
+
     _scrollToBottom();
-    
+
     final answer = await LLM7Service.askQuestion(
       objectName: widget.object.name,
       shortDescription: widget.object.shortDescription,
@@ -55,15 +55,15 @@ class _AIChatScreenState extends State<AIChatScreen> {
       userQuestion: question,
       isFirstQuestion: _messages.length <= 2,
     );
-    
+
     setState(() {
       _messages.add(ChatMessage(text: answer, isUser: false));
       _isLoading = false;
     });
-    
+
     _scrollToBottom();
   }
-  
+
   void _scrollToBottom() {
     Future.delayed(const Duration(milliseconds: 100), () {
       if (_scrollController.hasClients) {
@@ -125,65 +125,68 @@ class _AIChatScreenState extends State<AIChatScreen> {
               },
             ),
           ),
-          
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 8,
-                  offset: const Offset(0, -2),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _messageController,
-                    decoration: InputDecoration(
-                      hintText: "Спросите об истории...",
-                      hintStyle: TextStyle(
-                        color: AppColors.blueText.withValues(alpha: 0.5),
-                        fontSize: 14,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(25),
-                        borderSide: BorderSide.none,
-                      ),
-                      filled: true,
-                      fillColor: const Color(0xFFF5F0E8),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 12,
-                      ),
-                    ),
-                    maxLines: 3,
-                    minLines: 1,
-                    textInputAction: TextInputAction.send,
-                    onSubmitted: (_) => _sendMessage(),
+
+          SafeArea(
+            top: false,
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, -2),
                   ),
-                ),
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: _sendMessage,
-                  child: Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryRed,
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    child: const Icon(
-                      Icons.send,
-                      color: Colors.white,
-                      size: 22,
+                ],
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _messageController,
+                      decoration: InputDecoration(
+                        hintText: "Спросите об истории...",
+                        hintStyle: TextStyle(
+                          color: AppColors.blueText.withValues(alpha: 0.5),
+                          fontSize: 14,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(25),
+                          borderSide: BorderSide.none,
+                        ),
+                        filled: true,
+                        fillColor: const Color(0xFFF5F0E8),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 12,
+                        ),
+                      ),
+                      maxLines: 3,
+                      minLines: 1,
+                      textInputAction: TextInputAction.send,
+                      onSubmitted: (_) => _sendMessage(),
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: _sendMessage,
+                    child: Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryRed,
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      child: const Icon(
+                        Icons.send,
+                        color: Colors.white,
+                        size: 22,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -195,18 +198,15 @@ class _AIChatScreenState extends State<AIChatScreen> {
 class ChatMessage {
   final String text;
   final bool isUser;
-  
-  ChatMessage({
-    required this.text,
-    required this.isUser,
-  });
+
+  ChatMessage({required this.text, required this.isUser});
 }
 
 class _ChatBubble extends StatelessWidget {
   final ChatMessage message;
-  
+
   const _ChatBubble({required this.message});
-  
+
   @override
   Widget build(BuildContext context) {
     return Align(
@@ -222,8 +222,12 @@ class _ChatBubble extends StatelessWidget {
           borderRadius: BorderRadius.circular(20).copyWith(
             topRight: const Radius.circular(20),
             topLeft: const Radius.circular(20),
-            bottomRight: message.isUser ? const Radius.circular(4) : const Radius.circular(20),
-            bottomLeft: message.isUser ? const Radius.circular(20) : const Radius.circular(4),
+            bottomRight: message.isUser
+                ? const Radius.circular(4)
+                : const Radius.circular(20),
+            bottomLeft: message.isUser
+                ? const Radius.circular(20)
+                : const Radius.circular(4),
           ),
           boxShadow: [
             BoxShadow(
@@ -248,7 +252,7 @@ class _ChatBubble extends StatelessWidget {
 
 class _TypingIndicator extends StatelessWidget {
   const _TypingIndicator();
-  
+
   @override
   Widget build(BuildContext context) {
     return Align(
@@ -258,9 +262,9 @@ class _TypingIndicator extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(20).copyWith(
-            bottomLeft: const Radius.circular(4),
-          ),
+          borderRadius: BorderRadius.circular(
+            20,
+          ).copyWith(bottomLeft: const Radius.circular(4)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -279,17 +283,18 @@ class _TypingIndicator extends StatelessWidget {
 
 class _TypingDot extends StatefulWidget {
   final int delay;
-  
+
   const _TypingDot({required this.delay});
-  
+
   @override
   State<_TypingDot> createState() => _TypingDotState();
 }
 
-class _TypingDotState extends State<_TypingDot> with SingleTickerProviderStateMixin {
+class _TypingDotState extends State<_TypingDot>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
-  
+
   @override
   void initState() {
     super.initState();
@@ -297,20 +302,21 @@ class _TypingDotState extends State<_TypingDot> with SingleTickerProviderStateMi
       vsync: this,
       duration: const Duration(milliseconds: 800),
     );
-    _animation = Tween<double>(begin: 0.3, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _animation = Tween<double>(
+      begin: 0.3,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
     Future.delayed(Duration(milliseconds: widget.delay), () {
       if (mounted) _controller.repeat(reverse: true);
     });
   }
-  
+
   @override
   void dispose() {
     _controller.dispose();
     super.dispose();
   }
-  
+
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(

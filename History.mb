@@ -504,3 +504,118 @@
   - Проведен поиск явных секретов/паролей по проекту: пароль админ-аккаунта в файлах не найден. Supabase используется через public/publishable key в локальном `assets/.env`; service role key в проект не добавлялся.
   - `git add -n .` проверен после настройки ignore. В будущий коммит попадают код, README, Supabase schema, тесты, fallback images/panoramas, `History.mb` и `tools/generate_mayak_qr.mjs`; не попадают `.env`, `.glb`, build/cache, логи, zip/mp4/docx/pptx.
   - Коммит и push не выполнялись: remote GitHub URL неизвестен, а перед первым коммитом пользователь может решить, публиковать весь `E:\ar` или только `E:\ar\Ar\flutter_application_1`.
+- 2026-07-06: начата ревизия входящих материалов тестировщиков и чужой ветки:
+  - Пользователь добавил `E:\ar\БАГИ.pdf` и `E:\ar\Ar работают места рядом.zip`.
+  - `БАГИ.pdf` оказался не текстовым документом, а PDF из 4 изображений-скриншотов. Для просмотра страницы временно извлекались в `E:\ar\.codex_pdf_pages`, затем служебная папка удалена.
+  - По скриншотам видны UI-проблемы на телефоне: шапки и элементы экранов залезают в status bar, AR-кнопка/нижние контролы слишком близко к системной навигации, часть горизонтальных карточек/подписей может обрезаться. Вероятная причина в текущем коде: фиксированные высоты шапок и абсолютные `Positioned(top/bottom)` без учета `SafeArea`/`MediaQuery.viewPadding`.
+  - `Ar работают места рядом.zip` распакован только для ревью во временную папку `C:\Users\kao24\AppData\Local\Temp\ar_incoming_review_20260706_173654`; рабочий проект не заменялся.
+  - Чужая версия основана не на нашей ветке: в ней нет нашей админки `lib/admin`, server-hosted 3D/AR-слоя, `model_viewer_plus`, QR/admin-логики и README/GitHub-подготовки. Прямое копирование архива поверх проекта удалит значительную часть текущей работы.
+  - Найденные полезные блоки чужой версии для выборочной интеграции: новая карта в `lib/screens/map/`, сервисы мест рядом `lib/core/services/places/*`, модели `place_model.dart` и `route_model.dart`, маршруты `route_service.dart`, `route_panel_screen.dart`, `create_route_screen.dart`, `recommended_places_screen.dart`, `route_progress_widget.dart`, а также доработки меню/профиля/достижений.
+  - Предпочтительный следующий шаг: сначала исправить SafeArea/layout-баги из PDF в нашей версии, затем портировать “места рядом” сервисами и виджетами в существующий `lib/screens/map_screen.dart`, не перенося чужую версию проекта целиком.
+- 2026-07-06: исправлены UI-баги из `БАГИ.pdf`, связанные с системными отступами Android:
+  - `lib/main.dart`: добавлена настройка `SystemUiOverlayStyle` для прозрачного status bar, светлых status bar icons и светлой navigation bar-зоны.
+  - Кастомные красные шапки теперь учитывают `MediaQuery.viewPaddingOf(context).top`: `menu_screen.dart`, `profile_screen.dart`, `map_screen.dart`, `achievements_screen.dart`, `scan_history_screen.dart`, `notifications_screen.dart`, `notification_settings_screen.dart`, `test_screen.dart`, а также overlay-шапки `panorama_screen.dart` и `historical_experience_screen.dart`.
+  - Нижние overlay-элементы теперь учитывают `MediaQuery.viewPadding.bottom`/`SafeArea`: кнопка `AR` и таймлайн/инфо-панель в историческом 3D/панорама режиме, нижняя строка ввода в `ai_chat_screen.dart`, карточка выбранного объекта на карте, кастомные bottom nav в достижениях и истории сканирований.
+  - В профиле ограничены длинные имена/описания карточек достижений, чтобы текст не вылезал из красных карточек; в экране достижений ширина раскрытой карточки теперь считается от доступной ширины списка, а не от полной ширины экрана.
+  - Проверки после правок:
+    - `F:\Flutter\flutter\bin\dart.bat format ...` - успешно, отформатировано 12 файлов.
+    - `F:\Flutter\flutter\bin\flutter.bat analyze` - No issues found.
+    - `F:\Flutter\flutter\bin\flutter.bat test` - 23/23 tests passed.
+    - `F:\Flutter\flutter\bin\flutter.bat build apk --debug` - успешно, APK собран в `build\app\outputs\flutter-apk\app-debug.apk`; осталось прежнее предупреждение Flutter о будущей миграции Kotlin Gradle Plugin.
+  - Следующий шаг: проверить APK на телефоне на экранах `Профиль`, `Меню`, `Маяк -> Исторический вид -> 3D`, `AI Ассистент`, затем переходить к выборочной интеграции “мест рядом” из входящего архива.
+- 2026-07-06: доработан 3D/AR-экран после проверки на телефоне:
+  - `lib/screens/historical_experience_screen.dart`: кнопка `AR` в 3D-режиме теперь поднимается выше и при наличии таймлайна эпох размещается примерно на уровне середины таймлайна; если таймлайна нет, остается на обычном нижнем отступе.
+  - `lib/services/ar_experience_launcher.dart`: Android-запуск Scene Viewer получил fallback-цепочку. Сначала пробуется `intent://arvr.google.com/scene-viewer/1.0`, затем официальный `https://arvr.google.com/scene-viewer/1.0` через non-browser обработчик, затем прямая ссылка на `.glb`, чтобы пользователь хотя бы увидел модель/URL вместо полной ошибки.
+  - Пояснение по ошибке `Не удалось открыть Scene Viewer`: 3D-preview внутри приложения может работать через WebView/model-viewer, но внешний AR на Android требует системный обработчик Google Scene Viewer/Google Play Services for AR и ARCore-совместимое устройство. Если ARCore не установлен, отключен, недоступен для модели телефона или модель не открывается по публичному HTTPS URL, внешний Scene Viewer не запустится.
+  - Проверки после правок:
+    - `F:\Flutter\flutter\bin\dart.bat format lib\screens\historical_experience_screen.dart lib\services\ar_experience_launcher.dart` - успешно.
+    - `F:\Flutter\flutter\bin\flutter.bat analyze` - No issues found.
+    - `F:\Flutter\flutter\bin\flutter.bat test` - 23/23 tests passed.
+    - `F:\Flutter\flutter\bin\flutter.bat build apk --debug` - успешно, APK пересобран; осталось прежнее предупреждение Flutter о будущей миграции Kotlin Gradle Plugin.
+- 2026-07-07: исправлены замечания по 3D/AR-экрану после проверки на телефоне:
+  - `lib/screens/historical_experience_screen.dart`: встроенная AR-кнопка `model-viewer` отключена (`ar: false`) на историческом 3D-экране, чтобы не появлялась вторая круглая кнопка 3D/AR рядом с нашей основной кнопкой.
+  - Основная красная кнопка `AR` теперь центрируется по ширине экрана и ставится расчетным отступом на уровень линии таймлайна эпох; без таймлайна остается на нижнем отступе.
+  - `android/app/src/main/kotlin/com/example/flutter_application_1/MainActivity.kt`: добавлен `MethodChannel retro_ar/device_capabilities`, который сообщает Flutter наличие системного AR feature, пакета `com.google.ar.core`, Google App, Google Play Services и вероятный китайский рынок без Google-сервисов.
+  - `android/app/src/main/AndroidManifest.xml`: добавлены необязательный feature `android.hardware.camera.ar` и query для `com.google.android.gms`.
+  - `lib/services/ar_experience_launcher.dart`: Android-запуск больше не направляется напрямую в старый `com.google.ar.core` Scene Viewer. Если установлен ARCore + Google App + Google Play Services, используется Google Scene Viewer (`com.google.android.googlequicksearchbox`). Системный feature `android.hardware.camera.ar` читается для диагностики, но не блокирует запуск, чтобы не получить ложный fallback на поддерживаемых телефонах. Если ARCore/Google-сервисы недоступны или устройство похоже на китайскую сборку без Google, приложение остается во встроенном упрощенном 3D-просмотре и показывает объясняющее сообщение.
+  - Проверки после правок:
+    - `F:\Flutter\flutter\bin\cache\dart-sdk\bin\dart.exe format lib\screens\historical_experience_screen.dart lib\services\ar_experience_launcher.dart` - успешно.
+    - Flutter `analyze` через `flutter_tools.snapshot` - No issues found.
+    - Flutter `test` через `flutter_tools.snapshot` - 23/23 tests passed.
+    - Flutter `build apk --debug` через `flutter_tools.snapshot` - успешно, APK пересобран в `build\app\outputs\flutter-apk\app-debug.apk`; осталось прежнее предупреждение о будущей миграции Kotlin Gradle Plugin.
+- 2026-07-08: добавлен встроенный MVP `AR-камера` вместо прямого перехода в Scene Viewer:
+  - Причина изменения: на Poco X7 Pro 5G ARCore поддерживается, но внешний Google Scene Viewer все равно показывает свой стандартный UX с поиском плоскости. Это не ошибка ARCore, а поведение Scene Viewer. Для большего контроля нужен собственный AR-экран внутри приложения.
+  - В `pubspec.yaml` добавлен `ar_flutter_plugin_2: ^0.0.3` и прямой `vector_math`.
+  - `flutter pub get` обновил `pubspec.lock`, а также generated plugin registrants для macOS/Windows.
+  - Добавлен `lib/screens/ar_camera_screen.dart`: отдельный экран с `ARView`, `PlaneDetectionConfig.none`, загрузкой онлайн `.glb` как `NodeType.webGLB`, автоматической постановкой модели перед камерой, кнопками `Поставить`, масштаб +/- и дистанция ближе/дальше.
+  - Внутри `AR-камера` оставлена кнопка `Scene Viewer`, которая использует существующий `ArExperienceLauncher.launchExternalViewer()` как fallback.
+  - `lib/screens/historical_experience_screen.dart`: кнопка `AR` в 3D-режиме теперь открывает `ArCameraScreen`, а не сразу внешний Scene Viewer. Если у модели нет публичного `glb_url`, остается fallback на внешний viewer/сообщение.
+  - `android/app/src/main/AndroidManifest.xml`: добавлен namespace `tools`, `uses-sdk tools:overrideLibrary="com.uhg0.ar_flutter_plugin_2"` для совместимости с minSdk текущего приложения и `camera.ar` переопределен как optional, чтобы приложение не становилось недоступным для телефонов без ARCore на уровне установки.
+  - Обновлены `README.md` и `Ar/flutter_application_1/README.md`: описан `AR Camera MVP`, fallback через Scene Viewer и следующий телефонный тест.
+  - Проверки после правок:
+    - `F:\Flutter\flutter\bin\cache\dart-sdk\bin\dart.exe format Ar\flutter_application_1\lib\screens\ar_camera_screen.dart Ar\flutter_application_1\lib\screens\historical_experience_screen.dart` - успешно.
+    - `F:\Flutter\flutter\bin\flutter.bat analyze` - No issues found.
+    - `F:\Flutter\flutter\bin\flutter.bat test` - 27/27 tests passed.
+    - `F:\Flutter\flutter\bin\flutter.bat build apk --debug` - успешно, APK пересобран в `E:\ar\Ar\flutter_application_1\build\app\outputs\flutter-apk\app-debug.apk`.
+  - Известное предупреждение сборки: Flutter сообщает о будущей миграции Kotlin Gradle Plugin; теперь в списке плагинов с KGP также `ar_flutter_plugin_2`. Это не блокирует текущий debug APK, но к production надо будет учитывать.
+  - Следующий практический шаг: установить свежий APK на Poco X7 Pro 5G, открыть `Маяк -> Исторический вид -> 3D -> AR`. Ожидаем не внешний Scene Viewer, а встроенный экран `AR-камера`; модель должна появиться перед камерой, без обязательного поиска плоскости. Если экран не стартует или модель не появляется, смотреть runtime-логи Android/Flutter.
+- 2026-07-08: проверен старый проект `https://github.com/Zerrant2/arsite` и исправлено размещение модели в `AR-камера`:
+  - В старом проекте AR реализован как web-страница Next.js с `<model-viewer>`:
+    - `ar-modes="webxr scene-viewer quick-look"`;
+    - `src` для `.glb` и `ios-src` для `.usdz`;
+    - проверка `navigator.xr`;
+    - для Android браузеров/встроенных webview без WebXR показывается рекомендация открыть ссылку в Chrome через `intent://...package=com.android.chrome...`.
+  - Вывод: старый проект не использовал нативный Flutter AR-плагин. На новых Android он работал лучше за счет WebXR в Chrome, на старых уходил в Scene Viewer, на iOS - в Quick Look.
+  - По скриншоту текущей `AR-камера`: камера открылась, а статус `Модель закреплена перед камерой` появился, но модели не было видно. Причина: модель добавлялась в фиксированную world-точку, а не относительно текущей позы камеры.
+  - `lib/screens/ar_camera_screen.dart`: `_placeModelInFront()` теперь вызывает `ARSessionManager.getCameraPose()`, берет текущую матрицу камеры, сдвигает ее на `_distance` метров вперед через `translateByDouble(0.0, -0.25, -_distance, 1.0)` и применяет `scaleByDouble(...)`. `ARNode` создается через `transformation`, а не через фиксированные `position/scale`.
+  - Если ARCore еще не отдал pose, экран несколько раз ждет по 220 мс и показывает сообщение `ARCore еще не отдал позу камеры`.
+  - Проверки после правки:
+    - `F:\Flutter\flutter\bin\cache\dart-sdk\bin\dart.exe format Ar\flutter_application_1\lib\screens\ar_camera_screen.dart` - успешно.
+    - `F:\Flutter\flutter\bin\flutter.bat analyze` - No issues found.
+    - `F:\Flutter\flutter\bin\flutter.bat test` - 27/27 tests passed.
+    - `F:\Flutter\flutter\bin\flutter.bat build apk --debug` - успешно, APK пересобран в `E:\ar\Ar\flutter_application_1\build\app\outputs\flutter-apk\app-debug.apk`.
+  - Если после этой правки модель все еще не видна на Poco, следующий вариант ближе к старому проекту: сделать отдельную HTTPS-страницу `model-viewer` (`webxr scene-viewer quick-look`) и открывать ее в Chrome intent из приложения. Для этого нужен публичный URL этой страницы, например production deploy web-части или статический HTML на хостинге.
+- 2026-07-08: добавлен MVP исторических маршрутов на карте:
+  - Добавлен `lib/core/models/heritage_route.dart`: модель маршрута, темы маршрутов (`Центр`, `Память`, `Архитектура`, `Главное`), иконки и цвета.
+  - Добавлен `lib/core/services/heritage_route_service.dart`: локальные шаблоны маршрутов, фильтрация по реально доступным объектам, расчет расстояния через `latlong2.Distance`, оценка времени прогулки, fallback-маршрут для произвольных объектов.
+  - `lib/screens/map_screen.dart`: в шапку карты добавлена кнопка маршрутов; выбранный маршрут рисуется линией `PolylineLayer`; точки маршрута отображаются пронумерованными маркерами; добавлена нижняя панель выбора маршрутов и компактная панель прогресса с переходом по точкам и открытием карточки объекта.
+  - Маршруты не конфликтуют с “Местами рядом”: открытие одной панели закрывает другую, выбранный объект/nearby-место сбрасывается по месту.
+  - Добавлен тест `test/heritage_route_service_test.dart`: проверяет сборку предустановленного маршрута по известным объектам и fallback-маршрут для неизвестных id.
+  - Обновлены `README.md` в корне и `Ar/flutter_application_1/README.md`: добавлен статус Routes MVP, ключевые файлы, команды и актуальный счетчик тестов.
+  - Проверки после правок:
+    - `F:\Flutter\flutter\bin\cache\dart-sdk\bin\dart.exe format Ar\flutter_application_1\lib\screens\map_screen.dart Ar\flutter_application_1\lib\core\models\heritage_route.dart Ar\flutter_application_1\lib\core\services\heritage_route_service.dart Ar\flutter_application_1\test\heritage_route_service_test.dart` - успешно.
+    - `F:\Flutter\flutter\bin\flutter.bat analyze` - No issues found.
+    - `F:\Flutter\flutter\bin\flutter.bat test` - 27/27 tests passed.
+    - `F:\Flutter\flutter\bin\flutter.bat build apk --debug` - успешно, APK пересобран в `E:\ar\Ar\flutter_application_1\build\app\outputs\flutter-apk\app-debug.apk`; осталось прежнее предупреждение о будущей миграции Kotlin Gradle Plugin.
+  - Текущее состояние: пользовательская карта содержит исторические объекты, “Места рядом” и MVP-маршруты. AR/3D-часть остается в состоянии последней успешной проверки: серверные `.glb` через Supabase Storage, индикатор загрузки, Scene Viewer через native Android intent.
+  - Следующий практический шаг: поставить свежий APK на телефон, открыть `Карта мест`, нажать кнопку маршрутов в шапке, проверить список маршрутов, линию, точки, панель прогресса и отсутствие перекрытий с системной навигацией. После проверки можно переносить маршруты в Supabase/админку или возвращаться к полноценному AR через камеру.
+- 2026-07-07: текущее состояние после последних правок:
+  - В проекте одновременно есть исправления SafeArea/UI, уточненный 3D/AR-экран, native-запуск Google Scene Viewer и MVP-слой “Места рядом” на карте.
+  - Последняя проверенная сборка после nearby-правок: `flutter analyze` - No issues found, `flutter test` - 25/25 tests passed, `flutter build apk --debug` - успешно.
+  - Свежий APK: `E:\ar\Ar\flutter_application_1\build\app\outputs\flutter-apk\app-debug.apk`.
+  - Следующая практическая проверка: установить APK на телефон, открыть `Карта мест`, нажать кнопку с компасом в шапке, проверить nearby-панель, категории, маркеры и fallback/Overpass. Затем можно переносить маршруты из чужой ветки.
+- 2026-07-07: начата выборочная интеграция функции “места рядом” из архива `Ar работают места рядом.zip`:
+  - Архив распаковывался только во временную папку `E:\ar\.codex_incoming_places` для чтения и после переноса удален. Чужой проект целиком не копировался, чтобы не потерять нашу админку, QR, Supabase Storage и 3D/AR-правки.
+  - Добавлен `lib/core/models/nearby_place.dart`: модель `NearbyPlace`, категории nearby-мест, подписи, иконки, цвета и Overpass-фильтры.
+  - Добавлен `lib/core/services/nearby_places_service.dart`: загрузка nearby-мест из Overpass API вокруг выбранного объекта или центра Волгограда, парсинг `node/way/relation` с `center`, сортировка по расстоянию, fallback-места при ошибке сети/пустом ответе.
+  - `lib/screens/map_screen.dart`: добавлена кнопка nearby-режима в шапке карты, нижняя панель “Места рядом”, фильтры категорий, маркеры nearby-мест на карте и переход камеры к выбранному nearby-месту. Исторические объекты, карточка объекта и переход в `ObjectDetailScreen` сохранены.
+  - Добавлен тест `test/nearby_places_service_test.dart`: проверяет парсинг Overpass node/way center и fallback по категории.
+  - Проверки после правок:
+    - `F:\Flutter\flutter\bin\cache\dart-sdk\bin\dart.exe format lib\core\models\nearby_place.dart lib\core\services\nearby_places_service.dart lib\screens\map_screen.dart test\nearby_places_service_test.dart` - успешно.
+    - Flutter `analyze` через `flutter_tools.snapshot` - No issues found.
+    - Flutter `test` через `flutter_tools.snapshot` - 25/25 tests passed.
+    - Flutter `build apk --debug` через `flutter_tools.snapshot` - успешно, APK пересобран в `build\app\outputs\flutter-apk\app-debug.apk`; осталось прежнее предупреждение о будущей миграции Kotlin Gradle Plugin.
+  - Следующий шаг: проверить экран `Карта мест` на телефоне, нажать новую кнопку с компасом/nearby в шапке, убедиться, что панель не перекрывает системную навигацию и что Overpass/fallback отображает места рядом. После этого можно переносить следующий слой из чужой ветки: маршруты.
+- 2026-07-07: обновлена документация под “Места рядом”:
+  - `Ar/flutter_application_1/README.md`: добавлен раздел `Nearby Places MVP` с описанием кнопки на карте, Overpass/fallback-логики, категорий, маркеров, панели и новых тестов.
+  - `README.md` в корне workspace: добавлен блок `Recent MVP Additions` со ссылкой на свежий debug APK и кратким описанием режима “Места рядом”.
+- 2026-07-07: уточнена позиция AR-кнопки и запуск Scene Viewer:
+  - `lib/screens/historical_experience_screen.dart`: кнопка `AR` в 3D-режиме теперь расположена по центру экрана по горизонтали, но выше всего блока таймлайна, чтобы не перекрывать линию, точки эпох и подпись года. При отсутствии таймлайна остается на нижнем отступе.
+  - `lib/services/ar_experience_launcher.dart` и `android/app/src/main/kotlin/com/example/flutter_application_1/MainActivity.kt`: запуск Google Scene Viewer перенесен из `url_launcher`/`intent://` в нативный Android `Intent.ACTION_VIEW` с `setPackage("com.google.android.googlequicksearchbox")`, как в официальном Java-примере Google. Это убирает неоднозначность системного выбора обработчика и не должно уводить в старый `com.google.ar.core`-обработчик.
+  - Fallback через HTTPS Scene Viewer удален: если Google Scene Viewer не запускается, приложение остается во встроенном 3D-просмотре и показывает сообщение, вместо того чтобы отдавать ссылку любому старому системному AR-обработчику.
+  - Важно: даже новый Google Scene Viewer в AR-режиме может просить пользователя найти/навести камеру на плоскость для размещения модели. Это штатное поведение Scene Viewer, а не отдельный старый режим.
+  - Проверки после правок:
+    - `F:\Flutter\flutter\bin\cache\dart-sdk\bin\dart.exe format lib\screens\historical_experience_screen.dart lib\services\ar_experience_launcher.dart` - успешно.
+    - Flutter `analyze` через `flutter_tools.snapshot` - No issues found.
+    - Flutter `test` через `flutter_tools.snapshot` - 23/23 tests passed.
+    - Flutter `build apk --debug` через `flutter_tools.snapshot` - успешно, APK пересобран в `build\app\outputs\flutter-apk\app-debug.apk`; осталось прежнее предупреждение о будущей миграции Kotlin Gradle Plugin.

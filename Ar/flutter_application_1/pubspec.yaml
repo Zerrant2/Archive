@@ -41,6 +41,8 @@ dependencies:
   google_generative_ai: ^0.4.0
   model_viewer_plus: ^1.10.0
   url_launcher: ^6.3.2
+  ar_flutter_plugin_2: ^0.0.3
+  vector_math: ^2.1.4
 
   supabase_flutter: ^2.0.0
   flutter_dotenv: ^5.1.0

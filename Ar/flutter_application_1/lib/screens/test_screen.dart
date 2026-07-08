@@ -15,7 +15,7 @@ class TestScreen extends StatefulWidget {
   final bool isHardTest;
 
   const TestScreen({
-    super.key, 
+    super.key,
     required this.objectName,
     this.rewardCoins = 20,
     this.isHardTest = false,
@@ -42,22 +42,26 @@ class _TestScreenState extends State<TestScreen> {
   }
 
   Future<void> _loadQuestions() async {
-    final objectsProvider = Provider.of<ObjectsProvider>(context, listen: false);
+    final objectsProvider = Provider.of<ObjectsProvider>(
+      context,
+      listen: false,
+    );
     final object = objectsProvider.getObjectByName(widget.objectName);
-    
+
     final userProvider = context.read<UserProvider>();
     await userProvider.loadUserData();
-    
-    final testKey = "${widget.objectName}_${widget.isHardTest ? "hard" : "simple"}";
+
+    final testKey =
+        "${widget.objectName}_${widget.isHardTest ? "hard" : "simple"}";
     final alreadyCompleted = userProvider.isTestCompleted(testKey);
-    
+
     if (kDebugMode) {
       debugPrint('=== TEST LOAD ===');
       debugPrint('Test key: $testKey');
       debugPrint('Already completed: $alreadyCompleted');
       debugPrint('=================');
     }
-    
+
     setState(() {
       if (object != null) {
         if (widget.isHardTest) {
@@ -71,23 +75,23 @@ class _TestScreenState extends State<TestScreen> {
       _isLoading = false;
       _wasAlreadyCompleted = alreadyCompleted;
     });
-    
+
     _selectedAnswers = List<int?>.filled(_questions.length, null);
-    
+
     if (_wasAlreadyCompleted == true && _questions.isNotEmpty) {
       for (int i = 0; i < _questions.length; i++) {
         _selectedAnswers[i] = _questions[i].correctIndex;
       }
       _correctAnswersCount = _questions.length;
       _isFinished = true;
-      
+
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           _showAlreadyCompletedDialog();
         }
       });
     }
-    
+
     setState(() {});
   }
 
@@ -103,15 +107,15 @@ class _TestScreenState extends State<TestScreen> {
 
   void _selectAnswer(int answerIndex) {
     if (_wasAlreadyCompleted == true || _isSaving == true) return;
-    
+
     setState(() {
       _selectedAnswers[_currentQuestionIndex] = answerIndex;
       _updateCorrectAnswersCount();
-      
+
       bool allAnswered = _selectedAnswers.every((a) => a != null);
       if (allAnswered == true && _isFinished == false) {
         _isFinished = true;
-        
+
         if (_correctAnswersCount == _questions.length) {
           _saveTestResult();
         } else {
@@ -144,15 +148,16 @@ class _TestScreenState extends State<TestScreen> {
 
   Future<void> _saveTestResult() async {
     if (_isSaving == true) return;
-    
+
     _isSaving = true;
     if (mounted) setState(() {});
-    
-    final testKey = "${widget.objectName}_${widget.isHardTest ? "hard" : "simple"}";
+
+    final testKey =
+        "${widget.objectName}_${widget.isHardTest ? "hard" : "simple"}";
     final userProvider = context.read<UserProvider>();
-    
+
     await userProvider.loadUserData(forceRefresh: true);
-    
+
     if (userProvider.isTestCompleted(testKey) == true) {
       if (kDebugMode) {
         debugPrint('Test already completed, not saving again');
@@ -163,13 +168,14 @@ class _TestScreenState extends State<TestScreen> {
       }
       return;
     }
-    
-    int earnedCoins = _correctAnswersCount * widget.rewardCoins ~/ _questions.length;
-    
+
+    int earnedCoins =
+        _correctAnswersCount * widget.rewardCoins ~/ _questions.length;
+
     if (kDebugMode) {
       debugPrint('Saving test result. Earned coins: $earnedCoins');
     }
-    
+
     try {
       final result = await userProvider.addCompletedTest(
         testKey: testKey,
@@ -177,14 +183,16 @@ class _TestScreenState extends State<TestScreen> {
         testType: widget.isHardTest ? "hard" : "simple",
         earnedCoins: earnedCoins,
       );
-      
+
       if (kDebugMode) {
-        debugPrint('Save test result result: success=${result.success}, isDuplicate=${result.isDuplicate}');
+        debugPrint(
+          'Save test result result: success=${result.success}, isDuplicate=${result.isDuplicate}',
+        );
       }
-      
+
       if (mounted) {
         _isSaving = false;
-        
+
         if (result.success == true) {
           setState(() {
             _wasAlreadyCompleted = true;
@@ -221,7 +229,7 @@ class _TestScreenState extends State<TestScreen> {
 
   void _showCongratulationsDialog(int earnedCoins) {
     if (mounted == false) return;
-    
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -267,7 +275,10 @@ class _TestScreenState extends State<TestScreen> {
                 ),
                 const SizedBox(height: 16),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.beigeBackground,
                     borderRadius: BorderRadius.circular(12),
@@ -358,7 +369,7 @@ class _TestScreenState extends State<TestScreen> {
 
   void _showAlreadyCompletedDialog() {
     if (mounted == false) return;
-    
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -437,9 +448,9 @@ class _TestScreenState extends State<TestScreen> {
 
   void _showFailureDialog() {
     if (mounted == false) return;
-    
+
     int percentage = (_correctAnswersCount * 100) ~/ _questions.length;
-    
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -549,11 +560,7 @@ class _TestScreenState extends State<TestScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading == true) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     if (_questions.isEmpty) {
@@ -609,7 +616,7 @@ class _TestScreenState extends State<TestScreen> {
             totalQuestions: _questions.length,
             isHardTest: widget.isHardTest,
           ),
-          
+
           Expanded(
             child: Container(
               width: double.infinity,
@@ -617,7 +624,7 @@ class _TestScreenState extends State<TestScreen> {
               child: Column(
                 children: [
                   const SizedBox(height: 20),
-                  
+
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 35),
                     child: Text(
@@ -626,14 +633,16 @@ class _TestScreenState extends State<TestScreen> {
                       style: AppTextStyles.headline15,
                     ),
                   ),
-                  
+
                   const SizedBox(height: 30),
-                  
+
                   ...List.generate(question.options.length, (index) {
-                    bool isSelected = _selectedAnswers[_currentQuestionIndex] == index;
+                    bool isSelected =
+                        _selectedAnswers[_currentQuestionIndex] == index;
                     bool isCorrect = index == question.correctIndex;
-                    bool showResult = _selectedAnswers[_currentQuestionIndex] != null;
-                    
+                    bool showResult =
+                        _selectedAnswers[_currentQuestionIndex] != null;
+
                     Color backgroundColor;
                     if (showResult == true) {
                       if (isCorrect == true) {
@@ -646,24 +655,30 @@ class _TestScreenState extends State<TestScreen> {
                     } else {
                       backgroundColor = AppColors.greyBackground;
                     }
-                    
+
                     Color borderColor;
                     if (showResult == true && isCorrect == true) {
                       borderColor = const Color(0xFF58F453);
-                    } else if (showResult == true && isSelected == true && isCorrect == false) {
+                    } else if (showResult == true &&
+                        isSelected == true &&
+                        isCorrect == false) {
                       borderColor = const Color(0xFFC71C1C);
                     } else {
                       borderColor = AppColors.whiteText;
                     }
-                    
+
                     return GestureDetector(
                       onTap: () {
-                        if (_selectedAnswers[_currentQuestionIndex] == null && _isSaving == false) {
+                        if (_selectedAnswers[_currentQuestionIndex] == null &&
+                            _isSaving == false) {
                           _selectAnswer(index);
                         }
                       },
                       child: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 38, vertical: 8),
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 38,
+                          vertical: 8,
+                        ),
                         height: 54,
                         decoration: BoxDecoration(
                           color: backgroundColor,
@@ -688,12 +703,21 @@ class _TestScreenState extends State<TestScreen> {
                                   decoration: BoxDecoration(
                                     color: AppColors.greenCorrect,
                                     borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: const Color(0xFF58F453), width: 1),
+                                    border: Border.all(
+                                      color: const Color(0xFF58F453),
+                                      width: 1,
+                                    ),
                                   ),
-                                  child: const Icon(Icons.check, color: Color(0xFF58F453), size: 16),
+                                  child: const Icon(
+                                    Icons.check,
+                                    color: Color(0xFF58F453),
+                                    size: 16,
+                                  ),
                                 ),
                               ),
-                            if (showResult == true && isSelected == true && isCorrect == false)
+                            if (showResult == true &&
+                                isSelected == true &&
+                                isCorrect == false)
                               Padding(
                                 padding: const EdgeInsets.only(right: 16),
                                 child: Container(
@@ -702,9 +726,16 @@ class _TestScreenState extends State<TestScreen> {
                                   decoration: BoxDecoration(
                                     color: AppColors.redWrong,
                                     borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: const Color(0xFFC71C1C), width: 1),
+                                    border: Border.all(
+                                      color: const Color(0xFFC71C1C),
+                                      width: 1,
+                                    ),
                                   ),
-                                  child: const Icon(Icons.close, color: Color(0xFFC71C1C), size: 16),
+                                  child: const Icon(
+                                    Icons.close,
+                                    color: Color(0xFFC71C1C),
+                                    size: 16,
+                                  ),
                                 ),
                               ),
                           ],
@@ -712,9 +743,9 @@ class _TestScreenState extends State<TestScreen> {
                       ),
                     );
                   }),
-                  
+
                   const Spacer(),
-                  
+
                   Container(
                     margin: const EdgeInsets.symmetric(horizontal: 38),
                     height: 54,
@@ -737,9 +768,9 @@ class _TestScreenState extends State<TestScreen> {
                       ],
                     ),
                   ),
-                  
+
                   const SizedBox(height: 20),
-                  
+
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 38),
                     child: Row(
@@ -749,27 +780,32 @@ class _TestScreenState extends State<TestScreen> {
                           _NavButton(
                             text: "Назад",
                             isBack: true,
-                            onTap: () => _goToQuestion(_currentQuestionIndex - 1),
+                            onTap: () =>
+                                _goToQuestion(_currentQuestionIndex - 1),
                           )
                         else
                           const SizedBox(width: 94),
-                        
+
                         if (isLastQuestion == false)
                           _NavButton(
                             text: "Далее",
                             isBack: false,
-                            onTap: () => _goToQuestion(_currentQuestionIndex + 1),
+                            onTap: () =>
+                                _goToQuestion(_currentQuestionIndex + 1),
                           )
                         else
                           const SizedBox(width: 94),
                       ],
                     ),
                   ),
-                  
+
                   const SizedBox(height: 16),
-                  
+
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 8,
+                    ),
                     child: Wrap(
                       alignment: WrapAlignment.center,
                       spacing: 8,
@@ -777,22 +813,31 @@ class _TestScreenState extends State<TestScreen> {
                       children: List.generate(_questions.length, (index) {
                         bool isAnswered = _selectedAnswers[index] != null;
                         bool isCurrent = _currentQuestionIndex == index;
-                        
+
                         return GestureDetector(
                           onTap: () => _goToQuestion(index),
                           child: Container(
                             width: 40,
                             height: 40,
                             decoration: BoxDecoration(
-                              color: isAnswered == true ? AppColors.darkRed : AppColors.greyBackground,
+                              color: isAnswered == true
+                                  ? AppColors.darkRed
+                                  : AppColors.greyBackground,
                               shape: BoxShape.circle,
-                              border: isCurrent == true ? Border.all(color: AppColors.primaryRed, width: 3) : null,
+                              border: isCurrent == true
+                                  ? Border.all(
+                                      color: AppColors.primaryRed,
+                                      width: 3,
+                                    )
+                                  : null,
                             ),
                             child: Center(
                               child: Text(
                                 "${index + 1}",
                                 style: TextStyle(
-                                  color: isAnswered == true ? AppColors.whiteText : AppColors.blueText,
+                                  color: isAnswered == true
+                                      ? AppColors.whiteText
+                                      : AppColors.blueText,
                                   fontSize: 16,
                                   fontWeight: FontWeight.w800,
                                 ),
@@ -803,13 +848,13 @@ class _TestScreenState extends State<TestScreen> {
                       }),
                     ),
                   ),
-                  
+
                   const SizedBox(height: 20),
                 ],
               ),
             ),
           ),
-          
+
           const _CustomBottomNavBar(),
         ],
       ),
@@ -833,15 +878,17 @@ class _TestHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final topInset = MediaQuery.viewPaddingOf(context).top;
+
     return Container(
       width: double.infinity,
-      height: 105,
+      height: 105 + topInset,
       color: AppColors.primaryRed,
       child: Stack(
         children: [
           Positioned(
             left: 11,
-            top: 9,
+            top: 9 + topInset,
             child: GestureDetector(
               onTap: () => Navigator.pop(context),
               child: Container(
@@ -851,30 +898,45 @@ class _TestHeader extends StatelessWidget {
                   color: Colors.grey.withValues(alpha: 0.39),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.arrow_back, color: AppColors.whiteText, size: 16),
+                child: const Icon(
+                  Icons.arrow_back,
+                  color: AppColors.whiteText,
+                  size: 16,
+                ),
               ),
             ),
           ),
-          
+
           Positioned(
             left: 31,
-            top: 33,
+            top: 33 + topInset,
             child: Text(
-              isHardTest == true ? "Сложный тест: $objectName" : "Тест: $objectName",
+              isHardTest == true
+                  ? "Сложный тест: $objectName"
+                  : "Тест: $objectName",
               style: AppTextStyles.headline25,
             ),
           ),
-          
+
           Positioned(
             left: 23,
-            top: 70,
+            top: 70 + topInset,
             child: RichText(
               text: TextSpan(
                 children: [
-                  const TextSpan(text: "Вопрос ", style: AppTextStyles.headline12),
-                  TextSpan(text: "$currentQuestion ", style: AppTextStyles.headline15),
+                  const TextSpan(
+                    text: "Вопрос ",
+                    style: AppTextStyles.headline12,
+                  ),
+                  TextSpan(
+                    text: "$currentQuestion ",
+                    style: AppTextStyles.headline15,
+                  ),
                   const TextSpan(text: "из ", style: AppTextStyles.headline12),
-                  TextSpan(text: "$totalQuestions", style: AppTextStyles.headline15),
+                  TextSpan(
+                    text: "$totalQuestions",
+                    style: AppTextStyles.headline15,
+                  ),
                 ],
               ),
             ),
@@ -911,10 +973,27 @@ class _NavButton extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            if (isBack == true) const Icon(Icons.arrow_back_ios, color: Color(0xFFFAF0F0), size: 10),
+            if (isBack == true)
+              const Icon(
+                Icons.arrow_back_ios,
+                color: Color(0xFFFAF0F0),
+                size: 10,
+              ),
             const SizedBox(width: 8),
-            Text(text, style: const TextStyle(color: Color(0xFFFAF0F0), fontSize: 12, fontWeight: FontWeight.w800)),
-            if (isBack == false) const Icon(Icons.arrow_forward_ios, color: Color(0xFFFAF0F0), size: 10),
+            Text(
+              text,
+              style: const TextStyle(
+                color: Color(0xFFFAF0F0),
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            if (isBack == false)
+              const Icon(
+                Icons.arrow_forward_ios,
+                color: Color(0xFFFAF0F0),
+                size: 10,
+              ),
           ],
         ),
       ),
@@ -931,7 +1010,13 @@ class _CustomBottomNavBar extends StatelessWidget {
       height: 73,
       decoration: const BoxDecoration(
         color: AppColors.primaryRed,
-        boxShadow: [BoxShadow(color: Colors.black26, offset: Offset(0, -2), blurRadius: 4)],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black26,
+            offset: Offset(0, -2),
+            blurRadius: 4,
+          ),
+        ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -951,7 +1036,11 @@ class _NavItem extends StatelessWidget {
   final String label;
   final int index;
 
-  const _NavItem({required this.icon, required this.label, required this.index});
+  const _NavItem({
+    required this.icon,
+    required this.label,
+    required this.index,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -962,7 +1051,14 @@ class _NavItem extends StatelessWidget {
         children: [
           Icon(icon, color: Colors.white70, size: 24),
           const SizedBox(height: 4),
-          Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w800)),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
         ],
       ),
     );

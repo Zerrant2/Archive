@@ -15,6 +15,7 @@ MVP исторического AR-приложения на Flutter. Прило�
 - 360-панорамы;
 - 3D-просмотр через `model_viewer_plus`;
 - индикатор загрузки серверной 3D-модели;
+- встроенный MVP `AR-камера` через `ar_flutter_plugin_2`;
 - внешний AR fallback через Android Scene Viewer и iOS Quick Look;
 - Supabase-интеграция;
 - web-админка;
@@ -25,7 +26,9 @@ MVP исторического AR-приложения на Flutter. Прило�
 - привязка 3D/AR-моделей к конкретным эпохам;
 - схема Supabase для MVP с RLS-политиками;
 - тестовая модель Маяка переведена с локального asset на публичный Supabase Storage URL;
-- `.glb` больше не бандлится внутрь APK.
+- `.glb` больше не бандлится внутрь APK;
+- режим “Места рядом” на карте через Overpass API/fallback;
+- MVP исторических маршрутов на карте: список маршрутов, линия, точки и панель прогресса.
 
 ## Что Было Сделано
 
@@ -53,6 +56,9 @@ MVP исторического AR-приложения на Flutter. Прило�
 16. Добавлен `LoadingModelViewer` с индикатором загрузки и обработкой ошибок.
 17. Модель Маяка загружена в Supabase Storage и подключена через `glb_url`.
 18. Обновлены README и `History.mb` для восстановления контекста.
+19. Интегрирован режим “Места рядом” с nearby-маркерами и фильтрами категорий.
+20. Добавлен MVP маршрутов по историческим объектам на карте.
+21. Добавлен встроенный экран `AR-камера`, который ставит `.glb` модель перед камерой без обязательного поиска плоскости Scene Viewer.
 
 ## Архитектура
 
@@ -420,7 +426,9 @@ usdz_asset_path
 4. Приложение скачивает модель с Supabase.
 5. Показывается индикатор `Загружаем 3D-модель`.
 6. После загрузки открывается интерактивный 3D-просмотр.
-7. Кнопка `AR` запускает системный viewer, если устройство поддерживает сценарий.
+7. Кнопка `AR` открывает встроенный экран `AR-камера`.
+8. Экран `AR-камера` запускает ARCore/ARKit-view, ставит `.glb` модель перед камерой и дает быстрые кнопки масштаба/дистанции.
+9. Внутри `AR-камера` есть кнопка `Scene Viewer` как fallback, если нужен внешний Google viewer.
 
 Тестовая модель Маяка:
 
@@ -429,6 +437,31 @@ https://kzegyfrwoilxwbrbgnen.supabase.co/storage/v1/object/public/archive-media/
 ```
 
 Эта модель уже подключена в live Supabase для `object_id = mayak`, `title = mayak_default`.
+
+## AR Camera MVP
+
+Добавлен первый встроенный AR-режим, чтобы не зависеть только от внешнего Google Scene Viewer:
+
+- используется пакет `ar_flutter_plugin_2`;
+- экран `lib/screens/ar_camera_screen.dart`;
+- кнопка `AR` в 3D-режиме сначала открывает `AR-камера`;
+- модель берется из публичного `glb_url`, то есть из Supabase Storage;
+- plane detection отключен (`PlaneDetectionConfig.none`), модель ставится перед камерой на выбранной дистанции;
+- пользователь может переставить модель перед собой, изменить масштаб и дистанцию;
+- отдельная кнопка `Scene Viewer` оставлена внутри AR-экрана как fallback.
+
+Ключевые файлы:
+
+```text
+lib/screens/ar_camera_screen.dart
+lib/screens/historical_experience_screen.dart
+pubspec.yaml
+android/app/src/main/AndroidManifest.xml
+```
+
+Важно: `AR-камера` нужно проверять именно на физическом Android/iOS-устройстве. Web/desktop остаются в 3D-preview/fallback. На Android приложение собрано с `camera.ar` как optional, чтобы устройства без ARCore не отсекались на уровне установки.
+
+Старый проект `Zerrant2/arsite` использовал другой подход: HTTPS-страницу с `<model-viewer ar ar-modes="webxr scene-viewer quick-look">`, принудительный переход в Chrome на Android при отсутствии WebXR и Quick Look для iOS. Если встроенный Flutter AR-плагин окажется нестабильным на тестовых устройствах, следующий путь - сделать такой же hosted WebAR viewer и открывать его из приложения через Chrome intent.
 
 ## Тесты
 
@@ -441,7 +474,9 @@ https://kzegyfrwoilxwbrbgnen.supabase.co/storage/v1/object/public/archive-media/
 - AR experience model;
 - выбор AR-модели по эпохе;
 - availability service для панорам и 3D;
-- fallback-логика опубликованных/неопубликованных объектов.
+- fallback-логика опубликованных/неопубликованных объектов;
+- парсинг nearby-мест из Overpass API и fallback по категориям;
+- построение исторических маршрутов и fallback-маршрута.
 
 Запуск:
 
@@ -449,7 +484,7 @@ https://kzegyfrwoilxwbrbgnen.supabase.co/storage/v1/object/public/archive-media/
 F:\Flutter\flutter\bin\flutter.bat test
 ```
 
-Последнее проверенное состояние: 23 теста проходят.
+Последнее проверенное состояние: 27 тестов проходят.
 
 ## Подготовка К GitHub
 
@@ -497,7 +532,8 @@ git push -u origin main
 ## Известные Ограничения
 
 - Настоящий AR зависит от поддержки ARCore/Scene Viewer на Android и Quick Look на iOS.
-- Для устройств без ARCore нужен отдельный fallback: псевдо-AR через камеру или обычный 3D-viewer.
+- Встроенная `AR-камера` зависит от ARCore/ARKit и проверяется только на физическом устройстве.
+- Для устройств без ARCore остается fallback: обычный 3D-viewer и внешний Scene Viewer/Quick Look при доступности.
 - 3D-модель должна быть оптимизирована по размеру и материалам, иначе слабые смартфоны будут тормозить.
 - Для iOS лучше хранить отдельный `.usdz`.
 - `mobile_scanner` дает WASM dry-run warnings при web-сборке.
@@ -507,11 +543,12 @@ git push -u origin main
 
 Ближайшие задачи:
 
-- протестировать 3D/AR Маяка на физическом телефоне после перехода на Supabase Storage;
-- проверить AR на нескольких Android-устройствах;
-- добавить понятный fallback для устройств без ARCore;
-- решить, нужен ли псевдо-AR режим через камеру;
+- протестировать маршруты и “Места рядом” на физическом телефоне;
+- проверить `AR-камера` на Poco X7 Pro 5G и еще одном Android-устройстве;
+- добавить более явную диагностику ошибок ARCore внутри `AR-камера`;
+- решить, нужен ли отдельный marker/QR-anchor режим вместо размещения перед камерой;
 - добавить UX-индикаторы для неподдерживаемого AR;
+- связать маршруты с админкой/Supabase вместо локальных шаблонов;
 - оптимизировать требования к `.glb` / `.usdz` для админов;
 - подготовить production deploy web-админки;
 - переименовать Flutter package/app label из `flutter_application_1` в финальное название.
@@ -525,3 +562,62 @@ E:\ar\History.mb
 ```
 
 Если сессия разработки оборвется, восстановление контекста начинать с `History.mb`.
+
+## Nearby Places MVP
+
+На карте добавлен первый слой функции “Места рядом”:
+
+- кнопка с компасом в шапке `Карта мест`;
+- загрузка nearby-мест через Overpass API вокруг выбранного исторического объекта или центра Волгограда;
+- fallback-места, если Overpass недоступен или ответ пустой;
+- категории: кафе, еда, музеи, парки, отели, аптеки, банкоматы, магазины, видовые точки;
+- маркеры nearby-мест на карте;
+- нижняя панель со списком мест и фильтрами категорий;
+- тесты парсинга Overpass node/way center и fallback по категории.
+
+Ключевые файлы:
+
+```text
+lib/core/models/nearby_place.dart
+lib/core/services/nearby_places_service.dart
+lib/screens/map_screen.dart
+test/nearby_places_service_test.dart
+```
+
+Проверенное состояние после добавления:
+
+```text
+flutter analyze        No issues found
+flutter test           25/25 tests passed
+flutter build apk      build/app/outputs/flutter-apk/app-debug.apk
+```
+
+## Routes MVP
+
+На карте добавлен первый слой исторических маршрутов:
+
+- кнопка маршрутов в шапке `Карта мест`;
+- нижняя панель со списком готовых маршрутов;
+- линия выбранного маршрута на карте;
+- пронумерованные точки маршрута поверх исторических объектов;
+- нижняя панель прогресса с текущей точкой, переходом назад/вперед и открытием карточки объекта;
+- fallback-маршрут, если в данных нет объектов с ожидаемыми id.
+
+Пока маршруты задаются локальными шаблонами в сервисе. Следующий целевой шаг - хранить маршруты в Supabase и редактировать их через админку.
+
+Ключевые файлы:
+
+```text
+lib/core/models/heritage_route.dart
+lib/core/services/heritage_route_service.dart
+lib/screens/map_screen.dart
+test/heritage_route_service_test.dart
+```
+
+Проверенное состояние после добавления:
+
+```text
+flutter analyze        No issues found
+flutter test           27/27 tests passed
+flutter build apk      build/app/outputs/flutter-apk/app-debug.apk
+```

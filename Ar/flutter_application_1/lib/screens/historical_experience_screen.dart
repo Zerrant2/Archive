@@ -10,6 +10,7 @@ import '../services/historical_experience_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/loading_model_viewer.dart';
+import 'ar_camera_screen.dart';
 import 'object_detail_screen.dart';
 
 enum _ExperienceMode { panorama, model3d }
@@ -73,6 +74,7 @@ class _HistoricalExperienceScreenState
     HistoricalExperienceAvailability availability,
   ) {
     final screenSize = MediaQuery.sizeOf(context);
+    final viewPadding = MediaQuery.viewPaddingOf(context);
     final mode = _effectiveMode(availability);
     final panoramas = availability.availablePanoramas;
     final currentPanorama = _currentPanorama(panoramas);
@@ -94,7 +96,8 @@ class _HistoricalExperienceScreenState
                 : _ModelExperience(
                     objectName: widget.object.name,
                     arAvailability: currentArAvailability,
-                    onOpenExternalViewer: _openExternalViewer,
+                    hasTimeline: panoramas.length > 1,
+                    onOpenArCamera: _openArCamera,
                   ),
           ),
           _ExperienceTopBar(
@@ -104,7 +107,7 @@ class _HistoricalExperienceScreenState
           ),
           if (availability.hasPanoramas && availability.has3dMode)
             Positioned(
-              top: 58,
+              top: 58 + viewPadding.top,
               left: 16,
               right: 16,
               child: _ModeSelector(
@@ -119,7 +122,7 @@ class _HistoricalExperienceScreenState
             ),
           if (panoramas.length > 1)
             Positioned(
-              bottom: 50,
+              bottom: 50 + viewPadding.bottom,
               left: 0,
               right: 0,
               child: _ExperienceTimeline(
@@ -135,7 +138,7 @@ class _HistoricalExperienceScreenState
             ),
           if (_showInfoPanel)
             Positioned(
-              bottom: panoramas.length > 1 ? 120 : 28,
+              bottom: (panoramas.length > 1 ? 120 : 28) + viewPadding.bottom,
               left: 16,
               right: 16,
               child: _ExperienceInfoPanel(
@@ -196,6 +199,31 @@ class _HistoricalExperienceScreenState
       SnackBar(
         content: Text(result.message),
         duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  Future<void> _openArCamera() async {
+    final availability = await _availabilityFuture;
+    final experience = availability
+        .arAvailabilityFor(_currentPanorama(availability.availablePanoramas))
+        .experience;
+
+    if (!mounted || experience == null) return;
+
+    final glbUrl = experience.glbUrl?.trim();
+    if (glbUrl == null || glbUrl.isEmpty) {
+      await _openExternalViewer();
+      return;
+    }
+
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ArCameraScreen(
+          objectName: widget.object.name,
+          experience: experience,
+        ),
       ),
     );
   }
@@ -324,16 +352,19 @@ class _PanoramaExperience extends StatelessWidget {
 class _ModelExperience extends StatelessWidget {
   final String objectName;
   final ArExperienceAvailability arAvailability;
-  final VoidCallback onOpenExternalViewer;
+  final bool hasTimeline;
+  final VoidCallback onOpenArCamera;
 
   const _ModelExperience({
     required this.objectName,
     required this.arAvailability,
-    required this.onOpenExternalViewer,
+    required this.hasTimeline,
+    required this.onOpenArCamera,
   });
 
   @override
   Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
     final experience = arAvailability.experience;
     final modelPath = experience?.glbUrl ?? experience?.glbAssetPath;
     final hasExternalModelUrl = arAvailability.hasExternalModelUrl;
@@ -345,7 +376,7 @@ class _ModelExperience extends StatelessWidget {
             child: LoadingModelViewer(
               src: modelPath,
               alt: '3D model of $objectName',
-              ar: hasExternalModelUrl,
+              ar: false,
               arModes: const ['scene-viewer', 'webxr', 'quick-look'],
               arScale: ArScale.auto,
               arPlacement: _arPlacementFor(experience?.placement),
@@ -358,11 +389,12 @@ class _ModelExperience extends StatelessWidget {
             ),
           ),
           Positioned(
-            right: 16,
-            bottom: 22,
+            left: 0,
+            right: 0,
+            bottom: (hasTimeline ? 152 : 22) + bottomInset,
             child: _ArActionButton(
               hasExternalModelUrl: hasExternalModelUrl,
-              onTap: onOpenExternalViewer,
+              onTap: onOpenArCamera,
             ),
           ),
         ],
@@ -397,18 +429,20 @@ class _ArActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ElevatedButton.icon(
-      onPressed: onTap,
-      icon: const Icon(Icons.view_in_ar),
-      label: const Text('AR'),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: hasExternalModelUrl
-            ? AppColors.primaryRed
-            : const Color(0xFF8F8582),
-        foregroundColor: AppColors.whiteText,
-        textStyle: AppTextStyles.whiteText15,
-        elevation: 8,
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+    return Center(
+      child: ElevatedButton.icon(
+        onPressed: onTap,
+        icon: const Icon(Icons.view_in_ar),
+        label: const Text('AR'),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: hasExternalModelUrl
+              ? AppColors.primaryRed
+              : const Color(0xFF8F8582),
+          foregroundColor: AppColors.whiteText,
+          textStyle: AppTextStyles.whiteText15,
+          elevation: 8,
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+        ),
       ),
     );
   }
@@ -455,12 +489,14 @@ class _ExperienceTopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final topInset = MediaQuery.viewPaddingOf(context).top;
+
     return Positioned(
       top: 0,
       left: 0,
       right: 0,
       child: Container(
-        height: 112,
+        height: 112 + topInset,
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
@@ -476,7 +512,7 @@ class _ExperienceTopBar extends StatelessWidget {
           children: [
             Positioned(
               left: 11,
-              top: 9,
+              top: 9 + topInset,
               child: GestureDetector(
                 onTap: onBack,
                 child: Container(
@@ -497,7 +533,7 @@ class _ExperienceTopBar extends StatelessWidget {
             Positioned(
               left: 48,
               right: 62,
-              top: 13,
+              top: 13 + topInset,
               child: Text(
                 objectName,
                 maxLines: 1,
@@ -511,7 +547,7 @@ class _ExperienceTopBar extends StatelessWidget {
             ),
             Positioned(
               right: 20,
-              top: 12,
+              top: 12 + topInset,
               child: GestureDetector(
                 onTap: onInfo,
                 child: Container(

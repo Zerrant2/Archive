@@ -9,10 +9,12 @@ class NotificationSettingsScreen extends StatefulWidget {
   const NotificationSettingsScreen({super.key});
 
   @override
-  State<NotificationSettingsScreen> createState() => _NotificationSettingsScreenState();
+  State<NotificationSettingsScreen> createState() =>
+      _NotificationSettingsScreenState();
 }
 
-class _NotificationSettingsScreenState extends State<NotificationSettingsScreen> {
+class _NotificationSettingsScreenState
+    extends State<NotificationSettingsScreen> {
   bool _newAchievementsEnabled = true;
   bool _rewardsAndCoinsEnabled = true;
   bool _nearbyLocationsEnabled = true;
@@ -46,7 +48,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
 
   void _showSuccessMessage(String message) {
     _overlayEntry?.remove();
-    
+
     _overlayEntry = OverlayEntry(
       builder: (context) => Positioned(
         top: 100,
@@ -61,7 +63,11 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
               color: AppColors.beigeBackground,
               borderRadius: BorderRadius.circular(15),
               boxShadow: const [
-                BoxShadow(color: Color(0x3F000000), blurRadius: 10, offset: Offset(0, 22)),
+                BoxShadow(
+                  color: Color(0x3F000000),
+                  blurRadius: 10,
+                  offset: Offset(0, 22),
+                ),
               ],
             ),
             child: Stack(
@@ -89,7 +95,11 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                       shape: BoxShape.circle,
                       border: Border.all(color: AppColors.primaryRed, width: 1),
                     ),
-                    child: const Icon(Icons.check, color: AppColors.primaryRed, size: 14),
+                    child: const Icon(
+                      Icons.check,
+                      color: AppColors.primaryRed,
+                      size: 14,
+                    ),
                   ),
                 ),
               ],
@@ -98,7 +108,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
         ),
       ),
     );
-    
+
     Overlay.of(context).insert(_overlayEntry!);
     Future.delayed(const Duration(seconds: 2), () {
       _overlayEntry?.remove();
@@ -119,14 +129,14 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
       body: Column(
         children: [
           _SettingsHeader(),
-          
+
           Expanded(
             child: Container(
               color: AppColors.beigeBackground,
               child: Column(
                 children: [
                   const SizedBox(height: 20),
-                  
+
                   _SettingsGroup(
                     title: "Типы уведомлений",
                     children: [
@@ -139,7 +149,9 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                             _newAchievementsEnabled = value;
                             _saveSettings();
                           });
-                          _showSuccessMessage("Достижения ${value ? "включены" : "выключены"}");
+                          _showSuccessMessage(
+                            "Достижения ${value ? "включены" : "выключены"}",
+                          );
                         },
                         icon: Icons.emoji_events,
                       ),
@@ -152,7 +164,9 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                             _rewardsAndCoinsEnabled = value;
                             _saveSettings();
                           });
-                          _showSuccessMessage("Награды ${value ? "включены" : "выключены"}");
+                          _showSuccessMessage(
+                            "Награды ${value ? "включены" : "выключены"}",
+                          );
                         },
                         icon: Icons.monetization_on,
                       ),
@@ -165,7 +179,9 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                             _nearbyLocationsEnabled = value;
                             _saveSettings();
                           });
-                          _showSuccessMessage("Локации ${value ? "включены" : "выключены"}");
+                          _showSuccessMessage(
+                            "Локации ${value ? "включены" : "выключены"}",
+                          );
                         },
                         icon: Icons.location_on,
                       ),
@@ -178,13 +194,15 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                             _appUpdatesEnabled = value;
                             _saveSettings();
                           });
-                          _showSuccessMessage("Обновления ${value ? "включены" : "выключены"}");
+                          _showSuccessMessage(
+                            "Обновления ${value ? "включены" : "выключены"}",
+                          );
                         },
                         icon: Icons.update,
                       ),
                     ],
                   ),
-                  
+
                   const SizedBox(height: 30),
                 ],
               ),
@@ -201,15 +219,17 @@ class _SettingsHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final topInset = MediaQuery.viewPaddingOf(context).top;
+
     return Container(
       width: double.infinity,
-      height: 105,
+      height: 105 + topInset,
       color: AppColors.primaryRed,
       child: Stack(
         children: [
           Positioned(
             left: 11,
-            top: 9,
+            top: 9 + topInset,
             child: GestureDetector(
               onTap: () => Navigator.pop(context),
               child: Container(
@@ -219,14 +239,18 @@ class _SettingsHeader extends StatelessWidget {
                   color: Colors.grey.withValues(alpha: 0.39),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.arrow_back, color: AppColors.whiteText, size: 16),
+                child: const Icon(
+                  Icons.arrow_back,
+                  color: AppColors.whiteText,
+                  size: 16,
+                ),
               ),
             ),
           ),
-          const Positioned(
+          Positioned(
             left: 39,
-            top: 33,
-            child: Text(
+            top: 33 + topInset,
+            child: const Text(
               "Настройки уведомлений",
               style: AppTextStyles.headline25,
             ),
@@ -241,10 +265,7 @@ class _SettingsGroup extends StatelessWidget {
   final String title;
   final List<Widget> children;
 
-  const _SettingsGroup({
-    required this.title,
-    required this.children,
-  });
+  const _SettingsGroup({required this.title, required this.children});
 
   @override
   Widget build(BuildContext context) {
@@ -253,10 +274,7 @@ class _SettingsGroup extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-          child: Text(
-            title,
-            style: AppTextStyles.headline15,
-          ),
+          child: Text(title, style: AppTextStyles.headline15),
         ),
         ...children,
       ],
@@ -301,15 +319,9 @@ class _SettingsToggle extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: AppTextStyles.headline15,
-                ),
+                Text(title, style: AppTextStyles.headline15),
                 const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: AppTextStyles.body12,
-                ),
+                Text(subtitle, style: AppTextStyles.body12),
               ],
             ),
           ),

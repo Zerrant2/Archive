@@ -66,19 +66,25 @@ class HeaderBlock extends StatelessWidget {
   final String displayName;
   final int coins;
 
-  const HeaderBlock({super.key, required this.displayName, required this.coins});
+  const HeaderBlock({
+    super.key,
+    required this.displayName,
+    required this.coins,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final topInset = MediaQuery.viewPaddingOf(context).top;
+
     return Container(
       width: double.infinity,
-      height: 150,
+      height: 150 + topInset,
       color: AppColors.primaryRed,
       child: Stack(
         children: [
           Positioned(
             left: 27,
-            top: 20,
+            top: 20 + topInset,
             child: Container(
               width: 80,
               height: 80,
@@ -86,38 +92,62 @@ class HeaderBlock extends StatelessWidget {
                 color: Colors.grey[800],
                 borderRadius: BorderRadius.circular(40),
               ),
-              child: const Icon(Icons.person, size: 45, color: AppColors.whiteText),
+              child: const Icon(
+                Icons.person,
+                size: 45,
+                color: AppColors.whiteText,
+              ),
             ),
           ),
           Positioned(
             left: 115,
-            top: 35,
-            child: Text(
-              displayName,
+            right: 56,
+            top: 35 + topInset,
+            child: SizedBox(
+              height: 24,
+              child: Text(
+                displayName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: AppColors.whiteText,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  fontFamily: 'Montserrat',
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            left: 115,
+            right: 56,
+            top: 60 + topInset,
+            child: Text.rich(
+              TextSpan(
+                children: [
+                  const TextSpan(
+                    text: "Мой баланс: ",
+                    style: TextStyle(fontSize: 11, fontFamily: 'Montserrat'),
+                  ),
+                  TextSpan(
+                    text: "$coins",
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontFamily: 'Montserrat',
+                    ),
+                  ),
+                ],
+              ),
               style: const TextStyle(
                 color: AppColors.whiteText,
-                fontSize: 16,
                 fontWeight: FontWeight.w800,
                 fontFamily: 'Montserrat',
               ),
             ),
           ),
           Positioned(
-            left: 115,
-            top: 60,
-            child: Text.rich(
-              TextSpan(
-                children: [
-                  const TextSpan(text: "Мой баланс: ", style: TextStyle(fontSize: 11, fontFamily: 'Montserrat')),
-                  TextSpan(text: "$coins", style: const TextStyle(fontSize: 16, fontFamily: 'Montserrat')),
-                ],
-              ),
-              style: const TextStyle(color: AppColors.whiteText, fontWeight: FontWeight.w800, fontFamily: 'Montserrat'),
-            ),
-          ),
-          Positioned(
             right: 20,
-            top: 20,
+            top: 20 + topInset,
             child: GestureDetector(
               onTap: () {
                 Navigator.push(
@@ -211,7 +241,7 @@ class ContentBlock extends StatelessWidget {
       try {
         await Supabase.instance.client.rpc('delete_user_account');
         await Supabase.instance.client.auth.signOut();
-        
+
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -364,7 +394,7 @@ class StatsRow extends StatelessWidget {
     final userProvider = context.watch<UserProvider>();
     final unlockedAchievementsCount = userProvider.achievements.length;
     final totalAchievementsCount = AchievementService.allAchievements.length;
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
       child: Row(
@@ -373,7 +403,7 @@ class StatsRow extends StatelessWidget {
           StatItem(value: "$scansCount", label: "Сканирований"),
           StatItem(value: "$scansCount", label: "Загружено"),
           StatItem(
-            value: "$unlockedAchievementsCount/$totalAchievementsCount", 
+            value: "$unlockedAchievementsCount/$totalAchievementsCount",
             label: "Достижений",
           ),
         ],
@@ -463,7 +493,7 @@ class PlacesRow extends StatelessWidget {
     final userProvider = context.watch<UserProvider>();
     final scannedPlaces = userProvider.scannedPlaces;
     final objectsProvider = context.watch<ObjectsProvider>();
-    
+
     final scannedObjects = objectsProvider.allObjects
         .where((obj) => scannedPlaces.contains(obj.name))
         .toList();
@@ -471,9 +501,7 @@ class PlacesRow extends StatelessWidget {
     if (objectsProvider.allObjects.isEmpty) {
       return const SizedBox(
         height: 140,
-        child: Center(
-          child: CircularProgressIndicator(),
-        ),
+        child: Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -485,16 +513,28 @@ class PlacesRow extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.photo_camera, size: 50, color: AppColors.greyBackground),
+              const Icon(
+                Icons.photo_camera,
+                size: 50,
+                color: AppColors.greyBackground,
+              ),
               const SizedBox(height: 10),
               Text(
                 "Вы пока ничего не отсканировали",
-                style: TextStyle(color: AppColors.blueText, fontSize: 14, fontFamily: 'Montserrat'),
+                style: TextStyle(
+                  color: AppColors.blueText,
+                  fontSize: 14,
+                  fontFamily: 'Montserrat',
+                ),
               ),
               const SizedBox(height: 5),
               Text(
                 "Отсканируйте QR-код у исторического объекта",
-                style: TextStyle(color: AppColors.blueText.withValues(alpha: 0.7), fontSize: 12, fontFamily: 'Montserrat'),
+                style: TextStyle(
+                  color: AppColors.blueText.withValues(alpha: 0.7),
+                  fontSize: 12,
+                  fontFamily: 'Montserrat',
+                ),
               ),
             ],
           ),
@@ -510,13 +550,14 @@ class PlacesRow extends StatelessWidget {
         itemCount: scannedObjects.length,
         itemBuilder: (context, index) {
           final object = scannedObjects[index];
-          
+
           return GestureDetector(
             onTap: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => ObjectDetailScreen(objectName: object.name),
+                  builder: (context) =>
+                      ObjectDetailScreen(objectName: object.name),
                 ),
               );
             },
@@ -568,13 +609,12 @@ class AchievementsRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final userProvider = context.watch<UserProvider>();
-    
-    
+
     final unlockedAchievementsMap = <String, bool>{};
     for (final id in userProvider.achievements.keys) {
       unlockedAchievementsMap[id] = true;
     }
-    
+
     final achievements = AchievementService.getAllAchievementsWithState(
       scannedPlaces: userProvider.scannedPlaces,
       completedTests: userProvider.completedTests,
@@ -582,7 +622,9 @@ class AchievementsRow extends StatelessWidget {
       unlockedAchievements: unlockedAchievementsMap,
     );
 
-    final unlockedAchievements = achievements.where((a) => a.isUnlocked).toList();
+    final unlockedAchievements = achievements
+        .where((a) => a.isUnlocked)
+        .toList();
 
     if (unlockedAchievements.isEmpty) {
       return Container(
@@ -592,16 +634,28 @@ class AchievementsRow extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.emoji_events, size: 50, color: AppColors.greyBackground),
+              const Icon(
+                Icons.emoji_events,
+                size: 50,
+                color: AppColors.greyBackground,
+              ),
               const SizedBox(height: 10),
               Text(
                 "У вас пока нет достижений",
-                style: TextStyle(color: AppColors.blueText, fontSize: 14, fontFamily: 'Montserrat'),
+                style: TextStyle(
+                  color: AppColors.blueText,
+                  fontSize: 14,
+                  fontFamily: 'Montserrat',
+                ),
               ),
               const SizedBox(height: 5),
               Text(
                 "Сканируйте объекты и проходите тесты",
-                style: TextStyle(color: AppColors.blueText.withValues(alpha: 0.7), fontSize: 12, fontFamily: 'Montserrat'),
+                style: TextStyle(
+                  color: AppColors.blueText.withValues(alpha: 0.7),
+                  fontSize: 12,
+                  fontFamily: 'Montserrat',
+                ),
               ),
             ],
           ),
@@ -622,32 +676,39 @@ class AchievementsRow extends StatelessWidget {
               gradient: AppColors.redGradient,
               borderRadius: BorderRadius.circular(15),
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.emoji_events,
-                  color: AppColors.whiteText,
-                  size: 35,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  achievement.name,
-                  textAlign: TextAlign.center,
-                  style: AppTextStyles.body11,
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  achievement.description,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Color(0xFFBCB0B0),
-                    fontSize: 8,
-                    fontWeight: FontWeight.w800,
-                    fontFamily: 'Montserrat',
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.emoji_events,
+                    color: AppColors.whiteText,
+                    size: 35,
                   ),
-                ),
-              ],
+                  const SizedBox(height: 8),
+                  Text(
+                    achievement.name,
+                    textAlign: TextAlign.center,
+                    style: AppTextStyles.body11,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    achievement.description,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Color(0xFFBCB0B0),
+                      fontSize: 8,
+                      fontWeight: FontWeight.w800,
+                      fontFamily: 'Montserrat',
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
             ),
           );
         }).toList(),
@@ -655,7 +716,6 @@ class AchievementsRow extends StatelessWidget {
     );
   }
 }
-
 
 class SettingsToggleCard extends StatelessWidget {
   final String title;

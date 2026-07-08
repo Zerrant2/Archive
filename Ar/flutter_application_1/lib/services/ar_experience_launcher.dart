@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/ar_experience.dart';
@@ -21,6 +22,10 @@ class ArLaunchResult {
 
 class ArExperienceLauncher {
   const ArExperienceLauncher._();
+
+  static const MethodChannel _deviceChannel = MethodChannel(
+    'retro_ar/device_capabilities',
+  );
 
   static Future<ArLaunchResult> launchExternalViewer({
     required ArExperience experience,
@@ -52,25 +57,50 @@ class ArExperienceLauncher {
       );
     }
 
-    final sceneViewerUrl = Uri.encodeComponent(glbUrl);
-    final fallbackUrl = Uri.encodeComponent(glbUrl);
-    final title = Uri.encodeComponent(objectName);
-    final uri = Uri.parse(
-      'intent://arvr.google.com/scene-viewer/1.0'
-      '?file=$sceneViewerUrl'
-      '&mode=ar_preferred'
-      '&title=$title'
-      '#Intent;scheme=https;package=com.google.ar.core;'
-      'action=android.intent.action.VIEW;'
-      'S.browser_fallback_url=$fallbackUrl;end;',
+    final capabilities = await _loadAndroidArCapabilities();
+    if (capabilities.useSimplifiedFallback) {
+      return ArLaunchResult(
+        status: ArLaunchStatus.launchFailed,
+        message:
+            '${capabilities.fallbackReason} Остаемся во встроенном 3D-просмотре.',
+      );
+    }
+
+    final launched = await _launchAndroidGoogleSceneViewer(
+      glbUrl: glbUrl,
+      objectName: objectName,
+      mode: 'ar_preferred',
     );
 
-    return _tryLaunch(
-      uri,
-      successMessage: 'Открываем "$objectName" в системном AR-viewer.',
-      failureMessage:
-          'Не удалось открыть Scene Viewer. Возможно, устройство не поддерживает ARCore или модель недоступна.',
+    if (launched) {
+      return ArLaunchResult(
+        status: ArLaunchStatus.launched,
+        message: 'Открываем "$objectName" через Google Scene Viewer с ARCore.',
+      );
+    }
+
+    return const ArLaunchResult(
+      status: ArLaunchStatus.launchFailed,
+      message:
+          'Google Scene Viewer не запустился. Остаемся во встроенном 3D-просмотре, чтобы не открывать старый AR-обработчик.',
     );
+  }
+
+  static Future<bool> _launchAndroidGoogleSceneViewer({
+    required String glbUrl,
+    required String objectName,
+    required String mode,
+  }) async {
+    try {
+      return await _deviceChannel.invokeMethod<bool>('launchSceneViewer', {
+            'glbUrl': glbUrl,
+            'title': objectName,
+            'mode': mode,
+          }) ??
+          false;
+    } catch (_) {
+      return false;
+    }
   }
 
   static Future<ArLaunchResult> _launchIosQuickLook(
@@ -116,14 +146,12 @@ class ArExperienceLauncher {
 
   static Future<ArLaunchResult> _tryLaunch(
     Uri uri, {
+    LaunchMode mode = LaunchMode.externalApplication,
     required String successMessage,
     required String failureMessage,
   }) async {
     try {
-      final launched = await launchUrl(
-        uri,
-        mode: LaunchMode.externalApplication,
-      );
+      final launched = await launchUrl(uri, mode: mode);
 
       if (!launched) {
         return ArLaunchResult(
@@ -151,5 +179,77 @@ class ArExperienceLauncher {
     }
 
     return null;
+  }
+
+  static Future<_AndroidArCapabilities> _loadAndroidArCapabilities() async {
+    try {
+      final raw = await _deviceChannel.invokeMapMethod<String, dynamic>(
+        'getArCapabilities',
+      );
+      return _AndroidArCapabilities.fromMap(raw ?? const {});
+    } catch (_) {
+      return const _AndroidArCapabilities.unknown();
+    }
+  }
+}
+
+class _AndroidArCapabilities {
+  final bool isKnown;
+  final bool hasCameraArFeature;
+  final bool arCoreInstalled;
+  final bool googleAppInstalled;
+  final bool googlePlayServicesInstalled;
+  final bool likelyChinaMarketWithoutGoogle;
+
+  const _AndroidArCapabilities({
+    required this.isKnown,
+    required this.hasCameraArFeature,
+    required this.arCoreInstalled,
+    required this.googleAppInstalled,
+    required this.googlePlayServicesInstalled,
+    required this.likelyChinaMarketWithoutGoogle,
+  });
+
+  const _AndroidArCapabilities.unknown()
+    : isKnown = false,
+      hasCameraArFeature = false,
+      arCoreInstalled = false,
+      googleAppInstalled = false,
+      googlePlayServicesInstalled = false,
+      likelyChinaMarketWithoutGoogle = false;
+
+  factory _AndroidArCapabilities.fromMap(Map<String, dynamic> map) {
+    return _AndroidArCapabilities(
+      isKnown: true,
+      hasCameraArFeature: map['hasCameraArFeature'] == true,
+      arCoreInstalled: map['arCoreInstalled'] == true,
+      googleAppInstalled: map['googleAppInstalled'] == true,
+      googlePlayServicesInstalled: map['googlePlayServicesInstalled'] == true,
+      likelyChinaMarketWithoutGoogle:
+          map['likelyChinaMarketWithoutGoogle'] == true,
+    );
+  }
+
+  bool get canUseFullSceneViewer {
+    if (!isKnown) return true;
+    return arCoreInstalled &&
+        googleAppInstalled &&
+        googlePlayServicesInstalled &&
+        !likelyChinaMarketWithoutGoogle;
+  }
+
+  bool get useSimplifiedFallback => isKnown && !canUseFullSceneViewer;
+
+  String get fallbackReason {
+    if (likelyChinaMarketWithoutGoogle) {
+      return 'На устройстве не найден полный набор Google-сервисов для Scene Viewer.';
+    }
+    if (!arCoreInstalled) {
+      return 'ARCore не найден на этом устройстве.';
+    }
+    if (!googleAppInstalled || !googlePlayServicesInstalled) {
+      return 'Google Scene Viewer недоступен без Google App и Google Play Services.';
+    }
+    return 'Системный AR-viewer недоступен.';
   }
 }

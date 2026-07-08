@@ -29,33 +29,33 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
   Future<void> _loadScanHistory() async {
     final userProvider = context.read<UserProvider>();
     final objectsProvider = context.read<ObjectsProvider>();
-    
+
     await objectsProvider.loadObjects();
     await userProvider.loadUserData();
-    
+
     final scannedPlaces = userProvider.scannedPlaces;
     final allObjects = objectsProvider.allObjects;
-    
+
     // Загружаем историю сканирований из БД с реальными датами
     final scanHistoryFromDb = await ScanHistoryService.getScanHistory();
-    
+
     final history = <Map<String, dynamic>>[];
     for (var placeName in scannedPlaces) {
       final object = allObjects.firstWhere(
         (obj) => obj.name == placeName,
         orElse: () => throw Exception("Object not found"),
       );
-      
+
       // Находим дату сканирования из БД
       final scanRecord = scanHistoryFromDb.firstWhere(
         (scan) => scan['object_name'] == placeName,
         orElse: () => {},
       );
-      
-      final scannedAt = scanRecord['scanned_at'] != null 
+
+      final scannedAt = scanRecord['scanned_at'] != null
           ? DateTime.parse(scanRecord['scanned_at'])
           : DateTime.now();
-      
+
       history.add({
         'name': object.name,
         'century': object.century,
@@ -63,10 +63,13 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
         'scannedAt': scannedAt,
       });
     }
-    
+
     // Сортируем по дате (сначала новые)
-    history.sort((a, b) => (b['scannedAt'] as DateTime).compareTo(a['scannedAt'] as DateTime));
-    
+    history.sort(
+      (a, b) =>
+          (b['scannedAt'] as DateTime).compareTo(a['scannedAt'] as DateTime),
+    );
+
     setState(() {
       _scanHistory = history;
       _isLoading = false;
@@ -75,8 +78,18 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
 
   String _formatDate(DateTime date) {
     final months = [
-      'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
-      'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'
+      'января',
+      'февраля',
+      'марта',
+      'апреля',
+      'мая',
+      'июня',
+      'июля',
+      'августа',
+      'сентября',
+      'октября',
+      'ноября',
+      'декабря',
     ];
     return "${date.day} ${months[date.month - 1]} ${date.year}";
   }
@@ -88,46 +101,56 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
       body: Column(
         children: [
           _HistoryHeader(scanCount: _scanHistory.length),
-          
+
           Expanded(
             child: Container(
               color: AppColors.beigeBackground,
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _scanHistory.isEmpty
-                      ? const Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.history, size: 80, color: AppColors.greyBackground),
-                              SizedBox(height: 20),
-                              Text(
-                                "История сканирований пуста",
-                                style: TextStyle(color: AppColors.blueText, fontSize: 16),
-                              ),
-                              SizedBox(height: 10),
-                              Text(
-                                "Отсканируйте QR-код у исторического объекта",
-                                style: TextStyle(color: AppColors.blueText, fontSize: 12),
-                              ),
-                            ],
+                  ? const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.history,
+                            size: 80,
+                            color: AppColors.greyBackground,
                           ),
-                        )
-                      : ListView.builder(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          itemCount: _scanHistory.length,
-                          itemBuilder: (context, index) {
-                            final scan = _scanHistory[index];
-                            return _ScanHistoryItem(
-                              name: scan['name'],
-                              century: scan['century'],
-                              scannedDate: _formatDate(scan['scannedAt']),
-                            );
-                          },
-                        ),
+                          SizedBox(height: 20),
+                          Text(
+                            "История сканирований пуста",
+                            style: TextStyle(
+                              color: AppColors.blueText,
+                              fontSize: 16,
+                            ),
+                          ),
+                          SizedBox(height: 10),
+                          Text(
+                            "Отсканируйте QR-код у исторического объекта",
+                            style: TextStyle(
+                              color: AppColors.blueText,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      itemCount: _scanHistory.length,
+                      itemBuilder: (context, index) {
+                        final scan = _scanHistory[index];
+                        return _ScanHistoryItem(
+                          name: scan['name'],
+                          century: scan['century'],
+                          scannedDate: _formatDate(scan['scannedAt']),
+                        );
+                      },
+                    ),
             ),
           ),
-          
+
           const _CustomBottomNavBar(),
         ],
       ),
@@ -142,15 +165,17 @@ class _HistoryHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final topInset = MediaQuery.viewPaddingOf(context).top;
+
     return Container(
       width: double.infinity,
-      height: 105,
+      height: 105 + topInset,
       color: AppColors.primaryRed,
       child: Stack(
         children: [
           Positioned(
             left: 11,
-            top: 9,
+            top: 9 + topInset,
             child: GestureDetector(
               onTap: () => Navigator.pop(context),
               child: Container(
@@ -160,14 +185,18 @@ class _HistoryHeader extends StatelessWidget {
                   color: Colors.grey.withValues(alpha: 0.39),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.arrow_back, color: AppColors.whiteText, size: 16),
+                child: const Icon(
+                  Icons.arrow_back,
+                  color: AppColors.whiteText,
+                  size: 16,
+                ),
               ),
             ),
           ),
-          const Positioned(
+          Positioned(
             left: 31,
-            top: 27,
-            child: Text(
+            top: 27 + topInset,
+            child: const Text(
               "История сканирования",
               style: TextStyle(
                 color: AppColors.whiteText,
@@ -179,7 +208,7 @@ class _HistoryHeader extends StatelessWidget {
           ),
           Positioned(
             left: 31,
-            top: 65,
+            top: 65 + topInset,
             child: RichText(
               text: TextSpan(
                 children: [
@@ -246,17 +275,20 @@ class _ScanHistoryItem extends StatelessWidget {
               width: 110,
               height: 100,
               decoration: AppDecorations.redGradientSquare,
-              child: const Center(child: Icon(Icons.photo_camera, color: AppColors.whiteText, size: 45)),
+              child: const Center(
+                child: Icon(
+                  Icons.photo_camera,
+                  color: AppColors.whiteText,
+                  size: 45,
+                ),
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    name,
-                    style: AppTextStyles.headline15,
-                  ),
+                  Text(name, style: AppTextStyles.headline15),
                   const SizedBox(height: 4),
                   Text(
                     century,
@@ -271,7 +303,10 @@ class _ScanHistoryItem extends StatelessWidget {
                     children: [
                       GestureDetector(
                         onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Аудиогид в разработке"), duration: Duration(seconds: 1)),
+                          const SnackBar(
+                            content: Text("Аудиогид в разработке"),
+                            duration: Duration(seconds: 1),
+                          ),
                         ),
                         child: Container(
                           width: 86,
@@ -279,17 +314,31 @@ class _ScanHistoryItem extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: AppColors.darkRed.withValues(alpha: 0.48),
                             borderRadius: BorderRadius.circular(15),
-                            border: Border.all(color: const Color(0xFFDE3323).withValues(alpha: 0.41)),
+                            border: Border.all(
+                              color: const Color(
+                                0xFFDE3323,
+                              ).withValues(alpha: 0.41),
+                            ),
                           ),
                           child: const Center(
-                            child: Text("Аудио", style: TextStyle(color: AppColors.whiteText, fontSize: 12, fontWeight: FontWeight.w800)),
+                            child: Text(
+                              "Аудио",
+                              style: TextStyle(
+                                color: AppColors.whiteText,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
                           ),
                         ),
                       ),
                       const SizedBox(width: 7),
                       GestureDetector(
                         onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Текст в разработке"), duration: Duration(seconds: 1)),
+                          const SnackBar(
+                            content: Text("Текст в разработке"),
+                            duration: Duration(seconds: 1),
+                          ),
                         ),
                         child: Container(
                           width: 86,
@@ -300,7 +349,14 @@ class _ScanHistoryItem extends StatelessWidget {
                             border: Border.all(color: const Color(0xFFD3514A)),
                           ),
                           child: const Center(
-                            child: Text("Текст", style: TextStyle(color: Color(0xFFFAF0F0), fontSize: 12, fontWeight: FontWeight.w800)),
+                            child: Text(
+                              "Текст",
+                              style: TextStyle(
+                                color: Color(0xFFFAF0F0),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
                           ),
                         ),
                       ),
@@ -318,7 +374,11 @@ class _ScanHistoryItem extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios, color: Color(0xFF9E3435), size: 15),
+            const Icon(
+              Icons.arrow_forward_ios,
+              color: Color(0xFF9E3435),
+              size: 15,
+            ),
           ],
         ),
       ),
@@ -331,20 +391,29 @@ class _CustomBottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 73,
-      decoration: const BoxDecoration(
-        color: AppColors.primaryRed,
-        boxShadow: [BoxShadow(color: Colors.black26, offset: Offset(0, -2), blurRadius: 4)],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _NavItem(icon: Icons.qr_code_scanner, label: "Сканер", index: 0),
-          _NavItem(icon: Icons.map, label: "Карта", index: 1),
-          _NavItem(icon: Icons.menu, label: "Меню", index: 2),
-          _NavItem(icon: Icons.person, label: "Профиль", index: 3),
-        ],
+    return SafeArea(
+      top: false,
+      child: Container(
+        height: 73,
+        decoration: const BoxDecoration(
+          color: AppColors.primaryRed,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black26,
+              offset: Offset(0, -2),
+              blurRadius: 4,
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _NavItem(icon: Icons.qr_code_scanner, label: "Сканер", index: 0),
+            _NavItem(icon: Icons.map, label: "Карта", index: 1),
+            _NavItem(icon: Icons.menu, label: "Меню", index: 2),
+            _NavItem(icon: Icons.person, label: "Профиль", index: 3),
+          ],
+        ),
       ),
     );
   }
@@ -355,7 +424,11 @@ class _NavItem extends StatelessWidget {
   final String label;
   final int index;
 
-  const _NavItem({required this.icon, required this.label, required this.index});
+  const _NavItem({
+    required this.icon,
+    required this.label,
+    required this.index,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -366,7 +439,14 @@ class _NavItem extends StatelessWidget {
         children: [
           Icon(icon, color: Colors.white70, size: 24),
           const SizedBox(height: 4),
-          Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w800)),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
         ],
       ),
     );

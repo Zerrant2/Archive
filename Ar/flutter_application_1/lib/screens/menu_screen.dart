@@ -14,12 +14,7 @@ class MenuScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const SingleChildScrollView(
-      child: Column(
-        children: [
-          _MenuHeader(),
-          _MenuContent(),
-        ],
-      ),
+      child: Column(children: [_MenuHeader(), _MenuContent()]),
     );
   }
 }
@@ -29,16 +24,18 @@ class _MenuHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final topInset = MediaQuery.viewPaddingOf(context).top;
+
     return Container(
       width: double.infinity,
-      height: 105,
+      height: 105 + topInset,
       color: AppColors.primaryRed,
       child: Stack(
         children: [
-          const Positioned(
+          Positioned(
             left: 20,
-            top: 31,
-            child: Text(
+            top: 31 + topInset,
+            child: const Text(
               "Меню",
               style: TextStyle(
                 color: AppColors.whiteText,
@@ -48,10 +45,10 @@ class _MenuHeader extends StatelessWidget {
               ),
             ),
           ),
-          const Positioned(
+          Positioned(
             left: 20,
-            top: 66,
-            child: Text(
+            top: 66 + topInset,
+            child: const Text(
               "Исследуйте возможности приложения",
               style: TextStyle(
                 color: Color(0xFFBCB0B0),
@@ -63,7 +60,7 @@ class _MenuHeader extends StatelessWidget {
           ),
           Positioned(
             right: 20,
-            top: 18,
+            top: 18 + topInset,
             child: GestureDetector(
               onTap: () {
                 Navigator.push(
@@ -95,7 +92,8 @@ class _MenuContent extends StatefulWidget {
 
 class _MenuContentState extends State<_MenuContent> {
   void _navigateToTab(int tabIndex) {
-    final mainScreenState = context.findAncestorStateOfType<MainNavigationScreenState>();
+    final mainScreenState = context
+        .findAncestorStateOfType<MainNavigationScreenState>();
     if (mainScreenState != null && mounted) {
       mainScreenState.changeTab(tabIndex);
     }
@@ -226,15 +224,9 @@ class _MenuItem extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: AppTextStyles.headline15,
-                  ),
+                  Text(title, style: AppTextStyles.headline15),
                   const SizedBox(height: 5),
-                  Text(
-                    subtitle,
-                    style: AppTextStyles.headline12,
-                  ),
+                  Text(subtitle, style: AppTextStyles.headline12),
                 ],
               ),
             ),

@@ -37,7 +37,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   void _showMessage(String message) {
     _overlayEntry?.remove();
-    
+
     _overlayEntry = OverlayEntry(
       builder: (context) => Positioned(
         top: 100,
@@ -97,9 +97,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         ),
       ),
     );
-    
+
     Overlay.of(context).insert(_overlayEntry!);
-    
+
     Future.delayed(const Duration(seconds: 2), () {
       _overlayEntry?.remove();
       _overlayEntry = null;
@@ -108,12 +108,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   Future<void> _markAllAsRead() async {
     bool hasUnread = _notifications.any((n) => !n.isRead);
-    
+
     if (!hasUnread) {
       _showMessage("Нет непрочитанных уведомлений");
       return;
     }
-    
+
     await NotificationService.markAllAsRead();
     await _loadNotifications();
     _showMessage("Все уведомления прочитаны!");
@@ -143,30 +143,30 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             unreadCount: unreadCount,
             onMarkAllRead: _markAllAsRead,
           ),
-          
+
           Expanded(
             child: Container(
               color: AppColors.beigeBackground,
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _notifications.isEmpty
-                      ? const Center(
-                          child: Text(
-                            "Нет уведомлений",
-                            style: AppTextStyles.headline15,
-                          ),
-                        )
-                      : ListView.builder(
-                          padding: const EdgeInsets.only(top: 16, bottom: 20),
-                          itemCount: _notifications.length,
-                          itemBuilder: (context, index) {
-                            final notification = _notifications[index];
-                            return _NotificationCard(
-                              notification: notification,
-                              onTap: () => _markAsRead(notification.id),
-                            );
-                          },
-                        ),
+                  ? const Center(
+                      child: Text(
+                        "Нет уведомлений",
+                        style: AppTextStyles.headline15,
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.only(top: 16, bottom: 20),
+                      itemCount: _notifications.length,
+                      itemBuilder: (context, index) {
+                        final notification = _notifications[index];
+                        return _NotificationCard(
+                          notification: notification,
+                          onTap: () => _markAsRead(notification.id),
+                        );
+                      },
+                    ),
             ),
           ),
         ],
@@ -186,15 +186,17 @@ class _NotificationsHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final topInset = MediaQuery.viewPaddingOf(context).top;
+
     return Container(
       width: double.infinity,
-      height: 105,
+      height: 105 + topInset,
       color: AppColors.primaryRed,
       child: Stack(
         children: [
           Positioned(
             left: 11,
-            top: 9,
+            top: 9 + topInset,
             child: GestureDetector(
               onTap: () => Navigator.pop(context),
               child: Container(
@@ -204,21 +206,22 @@ class _NotificationsHeader extends StatelessWidget {
                   color: Colors.grey.withValues(alpha: 0.39),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.arrow_back, color: AppColors.whiteText, size: 16),
+                child: const Icon(
+                  Icons.arrow_back,
+                  color: AppColors.whiteText,
+                  size: 16,
+                ),
               ),
             ),
           ),
-          const Positioned(
+          Positioned(
             left: 39,
-            top: 30,
-            child: Text(
-              "Уведомления",
-              style: AppTextStyles.headline25,
-            ),
+            top: 30 + topInset,
+            child: const Text("Уведомления", style: AppTextStyles.headline25),
           ),
           Positioned(
             left: 38,
-            top: 64,
+            top: 64 + topInset,
             child: Text(
               "$unreadCount непрочитанных",
               style: TextStyle(
@@ -230,7 +233,7 @@ class _NotificationsHeader extends StatelessWidget {
           ),
           Positioned(
             right: 80,
-            top: 20,
+            top: 20 + topInset,
             child: GestureDetector(
               onTap: onMarkAllRead,
               child: Container(
@@ -252,7 +255,7 @@ class _NotificationsHeader extends StatelessWidget {
           ),
           Positioned(
             right: 20,
-            top: 20,
+            top: 20 + topInset,
             child: GestureDetector(
               onTap: () {
                 Navigator.push(
@@ -286,10 +289,7 @@ class _NotificationCard extends StatelessWidget {
   final NotificationItem notification;
   final VoidCallback onTap;
 
-  const _NotificationCard({
-    required this.notification,
-    required this.onTap,
-  });
+  const _NotificationCard({required this.notification, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -299,11 +299,11 @@ class _NotificationCard extends StatelessWidget {
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: notification.isRead 
+          color: notification.isRead
               ? AppColors.greyBackground
               : AppColors.lightPink,
           borderRadius: BorderRadius.circular(15),
-          border: notification.isRead 
+          border: notification.isRead
               ? null
               : Border.all(color: AppColors.primaryRed, width: 1),
         ),
@@ -325,20 +325,11 @@ class _NotificationCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    notification.title,
-                    style: AppTextStyles.headline15,
-                  ),
+                  Text(notification.title, style: AppTextStyles.headline15),
                   const SizedBox(height: 4),
-                  Text(
-                    notification.message,
-                    style: AppTextStyles.body12,
-                  ),
+                  Text(notification.message, style: AppTextStyles.body12),
                   const SizedBox(height: 8),
-                  Text(
-                    notification.time,
-                    style: AppTextStyles.blueText12,
-                  ),
+                  Text(notification.time, style: AppTextStyles.blueText12),
                 ],
               ),
             ),
