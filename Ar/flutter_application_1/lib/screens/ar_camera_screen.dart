@@ -85,6 +85,7 @@ class _ArCameraScreenState extends State<ArCameraScreen> {
                 : ARView(
                     onARViewCreated: _onArViewCreated,
                     planeDetectionConfig: PlaneDetectionConfig.none,
+                    enableDepth: false,
                     permissionPromptDescription:
                         'Для AR-камеры нужен доступ к камере.',
                     permissionPromptButtonText: 'Разрешить камеру',
@@ -126,12 +127,12 @@ class _ArCameraScreenState extends State<ArCameraScreen> {
     );
   }
 
-  void _onArViewCreated(
+  Future<void> _onArViewCreated(
     ARSessionManager sessionManager,
     ARObjectManager objectManager,
     ARAnchorManager anchorManager,
     ARLocationManager locationManager,
-  ) {
+  ) async {
     _sessionManager = sessionManager;
     _objectManager = objectManager;
 
@@ -143,16 +144,25 @@ class _ArCameraScreenState extends State<ArCameraScreen> {
       });
     };
 
-    sessionManager.onInitialize(
-      showAnimatedGuide: false,
-      showFeaturePoints: false,
-      showPlanes: false,
-      showWorldOrigin: false,
-      handleTaps: false,
-      handlePans: true,
-      handleRotation: true,
-    );
-    objectManager.onInitialize();
+    try {
+      await sessionManager.onInitialize(
+        showAnimatedGuide: false,
+        showFeaturePoints: false,
+        showPlanes: false,
+        showWorldOrigin: false,
+        handleTaps: false,
+        handlePans: true,
+        handleRotation: true,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _statusText = 'Не удалось инициализировать ARCore: $error';
+      });
+      return;
+    }
+
+    if (!mounted) return;
 
     setState(() {
       _isArReady = true;
@@ -217,7 +227,7 @@ class _ArCameraScreenState extends State<ArCameraScreen> {
     final sessionManager = _sessionManager;
     if (sessionManager == null) return null;
 
-    for (var attempt = 0; attempt < 4; attempt++) {
+    for (var attempt = 0; attempt < 20; attempt++) {
       final cameraPose = await sessionManager.getCameraPose();
       if (cameraPose != null) {
         final transform = vector.Matrix4.copy(cameraPose);
@@ -226,7 +236,7 @@ class _ArCameraScreenState extends State<ArCameraScreen> {
         return transform;
       }
 
-      await Future<void>.delayed(const Duration(milliseconds: 220));
+      await Future<void>.delayed(const Duration(milliseconds: 250));
     }
 
     return null;

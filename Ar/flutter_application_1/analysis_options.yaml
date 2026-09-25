@@ -9,6 +9,12 @@
 # packages, and plugins designed to encourage good coding practices.
 include: package:flutter_lints/flutter.yaml
 
+analyzer:
+  # This is a vendored third-party fork. Its legacy lint debt is intentionally
+  # kept outside the application lint pass; Android build still compiles it.
+  exclude:
+    - packages/ar_flutter_plugin_2/**
+
 linter:
   # The lint rules applied to this project can be customized in the
   # section below to disable rules from the `package:flutter_lints/flutter.yaml`

@@ -42,3 +42,9 @@ android {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // Keep the direct ARCore API aligned with SceneView 2.2.1 used by the
+    // vendored AR plugin. MainActivity uses it for runtime preflight checks.
+    implementation("com.google.ar:core:1.43.0")
+}

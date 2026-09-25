@@ -20,12 +20,78 @@ class ArLaunchResult {
   bool get launched => status == ArLaunchStatus.launched;
 }
 
+enum ArPreflightStatus {
+  ready,
+  installRequested,
+  checking,
+  unsupported,
+  failed,
+}
+
+class ArPreflightResult {
+  final ArPreflightStatus status;
+  final String message;
+
+  const ArPreflightResult({required this.status, required this.message});
+
+  bool get ready => status == ArPreflightStatus.ready;
+}
+
 class ArExperienceLauncher {
   const ArExperienceLauncher._();
 
   static const MethodChannel _deviceChannel = MethodChannel(
     'retro_ar/device_capabilities',
   );
+
+  static Future<ArPreflightResult> prepareEmbeddedAr() async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
+      return const ArPreflightResult(
+        status: ArPreflightStatus.ready,
+        message: 'AR готов к запуску.',
+      );
+    }
+
+    try {
+      final raw = await _deviceChannel.invokeMapMethod<String, dynamic>(
+        'prepareArCore',
+      );
+      final status = raw?['status']?.toString();
+      final detail = raw?['detail']?.toString() ?? '';
+
+      return switch (status) {
+        'ready' => const ArPreflightResult(
+          status: ArPreflightStatus.ready,
+          message: 'ARCore готов к запуску.',
+        ),
+        'install_requested' => const ArPreflightResult(
+          status: ArPreflightStatus.installRequested,
+          message:
+              'Установите или обновите Google Play Services for AR, затем нажмите AR еще раз.',
+        ),
+        'checking' => const ArPreflightResult(
+          status: ArPreflightStatus.checking,
+          message:
+              'ARCore еще проверяет совместимость. Повторите через несколько секунд.',
+        ),
+        'unsupported' => const ArPreflightResult(
+          status: ArPreflightStatus.unsupported,
+          message:
+              'Это устройство не подтверждено ARCore. Доступен обычный 3D-просмотр.',
+        ),
+        _ => ArPreflightResult(
+          status: ArPreflightStatus.failed,
+          message:
+              'Не удалось подготовить ARCore${detail.isEmpty ? '.' : ': $detail.'}',
+        ),
+      };
+    } catch (_) {
+      return const ArPreflightResult(
+        status: ArPreflightStatus.failed,
+        message: 'Не удалось проверить ARCore. Доступен обычный 3D-просмотр.',
+      );
+    }
+  }
 
   static Future<ArLaunchResult> launchExternalViewer({
     required ArExperience experience,

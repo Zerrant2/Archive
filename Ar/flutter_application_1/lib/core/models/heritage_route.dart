@@ -2,6 +2,14 @@ import 'package:flutter/material.dart';
 
 enum HeritageRouteTheme { city, warMemory, architecture, highlights }
 
+HeritageRouteTheme heritageRouteThemeFromValue(Object? value) {
+  final name = value?.toString().trim();
+  return HeritageRouteTheme.values.firstWhere(
+    (theme) => theme.name == name,
+    orElse: () => HeritageRouteTheme.highlights,
+  );
+}
+
 extension HeritageRouteThemeInfo on HeritageRouteTheme {
   String get label {
     switch (this) {
@@ -61,6 +69,23 @@ class HeritageRoute {
     required this.durationMinutes,
     required this.distanceKm,
   });
+
+  factory HeritageRoute.fromJson(Map<String, dynamic> json) {
+    final objectIds = (json['objectIds'] as List<dynamic>? ?? const [])
+        .map((value) => value.toString().trim())
+        .where((value) => value.isNotEmpty)
+        .toList();
+
+    return HeritageRoute(
+      id: json['id']?.toString().trim() ?? '',
+      name: json['name']?.toString().trim() ?? '',
+      description: json['description']?.toString().trim() ?? '',
+      theme: heritageRouteThemeFromValue(json['theme']),
+      objectIds: objectIds,
+      durationMinutes: (json['durationMinutes'] as num?)?.toInt() ?? 0,
+      distanceKm: (json['distanceKm'] as num?)?.toDouble() ?? 0,
+    );
+  }
 
   int get pointsCount => objectIds.length;
 

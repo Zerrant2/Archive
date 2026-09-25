@@ -57,3 +57,7 @@ assets/models/
 *.glb
 *.gltf
 *.usdz
+
+# Internal point-cloud primitive required by the vendored AR plugin. This is
+# not a historical model and must remain reproducible on a clean checkout.
+!packages/ar_flutter_plugin_2/android/src/main/assets/models/point_cloud.glb

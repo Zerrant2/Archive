@@ -6,58 +6,11 @@ import '../models/heritage_route.dart';
 class HeritageRouteService {
   static const _distance = Distance();
 
-  static List<HeritageRoute> buildRoutes(List<HistoricalObject> objects) {
+  static List<HeritageRoute> buildRoutes(
+    List<HistoricalObject> objects, {
+    required List<HeritageRoute> templates,
+  }) {
     final objectsById = {for (final object in objects) object.id: object};
-    final templates = <HeritageRoute>[
-      const HeritageRoute(
-        id: 'historic_center',
-        name: 'Исторический центр',
-        description: 'Короткий маршрут по центральным объектам города.',
-        theme: HeritageRouteTheme.city,
-        objectIds: ['nevsky_cathedral', 'fire_tower', 'mayak'],
-        durationMinutes: 0,
-        distanceKm: 0,
-      ),
-      const HeritageRoute(
-        id: 'memory_line',
-        name: 'Линия памяти',
-        description: 'Маршрут по местам, связанным с военной историей.',
-        theme: HeritageRouteTheme.warMemory,
-        objectIds: ['water_mill', 'pavlov_house', 'motherland'],
-        durationMinutes: 0,
-        distanceKm: 0,
-      ),
-      const HeritageRoute(
-        id: 'architecture_walk',
-        name: 'Архитектурная прогулка',
-        description: 'Разные эпохи и типы городской архитектуры.',
-        theme: HeritageRouteTheme.architecture,
-        objectIds: [
-          'nevsky_cathedral',
-          'fire_tower',
-          'water_mill',
-          'pavlov_house',
-        ],
-        durationMinutes: 0,
-        distanceKm: 0,
-      ),
-      const HeritageRoute(
-        id: 'city_highlights',
-        name: 'Главные точки',
-        description: 'Обзорный маршрут по ключевым местам MVP.',
-        theme: HeritageRouteTheme.highlights,
-        objectIds: [
-          'nevsky_cathedral',
-          'fire_tower',
-          'water_mill',
-          'pavlov_house',
-          'motherland',
-        ],
-        durationMinutes: 0,
-        distanceKm: 0,
-      ),
-    ];
-
     final routes = templates
         .map((route) => _hydrateRoute(route, objectsById))
         .where((route) => route.objectIds.length >= 2)

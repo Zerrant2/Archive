@@ -111,10 +111,39 @@ on public.heritage_ar_assets (object_id, title);
 create index if not exists heritage_ar_assets_object_epoch_year_idx
 on public.heritage_ar_assets (object_id, epoch_year);
 
+create table if not exists public.heritage_routes (
+  id text primary key,
+  name text not null,
+  description text not null default '',
+  theme text not null default 'highlights',
+  duration_minutes integer not null default 0,
+  distance_km numeric not null default 0,
+  sort_order integer not null default 0,
+  published boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint heritage_routes_theme_check
+    check (theme in ('city', 'warMemory', 'architecture', 'highlights'))
+);
+
+create table if not exists public.heritage_route_stops (
+  id uuid primary key default gen_random_uuid(),
+  route_id text not null references public.heritage_routes(id) on delete cascade,
+  object_id text not null references public.heritage_objects(id) on delete cascade,
+  sort_order integer not null default 0,
+  created_at timestamptz not null default now(),
+  unique (route_id, object_id)
+);
+
+create index if not exists heritage_route_stops_route_order_idx
+on public.heritage_route_stops (route_id, sort_order);
+
 alter table public.admin_profiles enable row level security;
 alter table public.heritage_objects enable row level security;
 alter table public.heritage_epochs enable row level security;
 alter table public.heritage_ar_assets enable row level security;
+alter table public.heritage_routes enable row level security;
+alter table public.heritage_route_stops enable row level security;
 
 grant select on public.admin_profiles to authenticated;
 grant insert, update, delete on public.admin_profiles to authenticated;
@@ -127,6 +156,12 @@ grant insert, update, delete on public.heritage_epochs to authenticated;
 
 grant select on public.heritage_ar_assets to anon, authenticated;
 grant insert, update, delete on public.heritage_ar_assets to authenticated;
+
+grant select on public.heritage_routes to anon, authenticated;
+grant insert, update, delete on public.heritage_routes to authenticated;
+
+grant select on public.heritage_route_stops to anon, authenticated;
+grant insert, update, delete on public.heritage_route_stops to authenticated;
 
 drop policy if exists "admins can read admin profiles" on public.admin_profiles;
 create policy "admins can read admin profiles"
@@ -169,6 +204,35 @@ using (published = true or public.is_archive_admin());
 drop policy if exists "admins can manage ar assets" on public.heritage_ar_assets;
 create policy "admins can manage ar assets"
 on public.heritage_ar_assets for all
+using (public.is_archive_admin())
+with check (public.is_archive_admin());
+
+drop policy if exists "published routes are readable" on public.heritage_routes;
+create policy "published routes are readable"
+on public.heritage_routes for select
+using (published = true or public.is_archive_admin());
+
+drop policy if exists "admins can manage routes" on public.heritage_routes;
+create policy "admins can manage routes"
+on public.heritage_routes for all
+using (public.is_archive_admin())
+with check (public.is_archive_admin());
+
+drop policy if exists "published route stops are readable" on public.heritage_route_stops;
+create policy "published route stops are readable"
+on public.heritage_route_stops for select
+using (
+  exists (
+    select 1
+    from public.heritage_routes route
+    where route.id = heritage_route_stops.route_id
+      and (route.published = true or public.is_archive_admin())
+  )
+);
+
+drop policy if exists "admins can manage route stops" on public.heritage_route_stops;
+create policy "admins can manage route stops"
+on public.heritage_route_stops for all
 using (public.is_archive_admin())
 with check (public.is_archive_admin());
 

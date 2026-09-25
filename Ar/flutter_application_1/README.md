@@ -15,7 +15,7 @@ MVP исторического AR-приложения на Flutter. Прило�
 - 360-панорамы;
 - 3D-просмотр через `model_viewer_plus`;
 - индикатор загрузки серверной 3D-модели;
-- встроенный MVP `AR-камера` через `ar_flutter_plugin_2`;
+- встроенный MVP `AR-камера` через локально закрепленный fork `ar_flutter_plugin_2`;
 - внешний AR fallback через Android Scene Viewer и iOS Quick Look;
 - Supabase-интеграция;
 - web-админка;
@@ -28,7 +28,7 @@ MVP исторического AR-приложения на Flutter. Прило�
 - тестовая модель Маяка переведена с локального asset на публичный Supabase Storage URL;
 - `.glb` больше не бандлится внутрь APK;
 - режим “Места рядом” на карте через Overpass API/fallback;
-- MVP исторических маршрутов на карте: список маршрутов, линия, точки и панель прогресса.
+- исторические маршруты с Supabase/JSON-каталогом и локально сохраняемым прогрессом.
 
 ## Что Было Сделано
 
@@ -155,7 +155,15 @@ F:\Flutter\flutter\bin\flutter.bat pub get
 Copy-Item .\assets\.env.example .\assets\.env
 ```
 
-Затем заполнить `assets/.env` значениями своего Supabase project.
+Затем заполнить `assets/.env` значениями своего Supabase project и новым ключом Google AI для исторического ассистента:
+
+```dotenv
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-public-supabase-publishable-key
+GEMINI_API_KEY=your-google-ai-api-key
+```
+
+Не добавляйте реальный `GEMINI_API_KEY` в исходный код или Git. Если ключ уже публиковался, его нужно отозвать и выпустить заново.
 
 Проверить окружение:
 
@@ -263,10 +271,10 @@ Get-Content -Path .\assets\data\objects.json -Encoding UTF8 | ConvertFrom-Json |
 Проверить, что 3D-модели не попали в APK:
 
 ```powershell
-tar -tf .\build\app\outputs\flutter-apk\app-debug.apk | Select-String -Pattern 'assets/models|\.glb|\.usdz'
+tar -tf .\build\app\outputs\flutter-apk\app-debug.apk | Select-String -Pattern 'mayak_test|assets/flutter_assets/assets/models|\.usdz'
 ```
 
-Ожидаемый результат: пустой вывод.
+Ожидаемый результат: пустой вывод. В APK может присутствовать небольшой служебный `assets/models/point_cloud.glb` из локального AR-плагина; это не историческая модель и не серверный контент объекта.
 
 Известные предупреждения:
 
@@ -313,6 +321,8 @@ admin_profiles
 heritage_objects
 heritage_epochs
 heritage_ar_assets
+heritage_routes
+heritage_route_stops
 ```
 
 Storage bucket:
@@ -443,6 +453,9 @@ https://kzegyfrwoilxwbrbgnen.supabase.co/storage/v1/object/public/archive-media/
 Добавлен первый встроенный AR-режим, чтобы не зависеть только от внешнего Google Scene Viewer:
 
 - используется пакет `ar_flutter_plugin_2`;
+- fork пакета хранится в `packages/ar_flutter_plugin_2`, поэтому Android-патч воспроизводим на других машинах;
+- перед открытием `ARView` Android выполняет `ArCoreApk.checkAvailability()` и при необходимости `requestInstall()`;
+- Depth API отключен по умолчанию для стабильности на Samsung A54 и POCO X7 Pro; наш режим размещения перед камерой от глубины не зависит;
 - экран `lib/screens/ar_camera_screen.dart`;
 - кнопка `AR` в 3D-режиме сначала открывает `AR-камера`;
 - модель берется из публичного `glb_url`, то есть из Supabase Storage;
@@ -457,9 +470,15 @@ lib/screens/ar_camera_screen.dart
 lib/screens/historical_experience_screen.dart
 pubspec.yaml
 android/app/src/main/AndroidManifest.xml
+android/app/src/main/kotlin/com/example/flutter_application_1/MainActivity.kt
+packages/ar_flutter_plugin_2/
 ```
 
-Важно: `AR-камера` нужно проверять именно на физическом Android/iOS-устройстве. Web/desktop остаются в 3D-preview/fallback. На Android приложение собрано с `camera.ar` как optional, чтобы устройства без ARCore не отсекались на уровне установки.
+Важно: `AR-камера` нужно проверять именно на физическом Android/iOS-устройстве. Web/desktop остаются в 3D-preview/fallback. На Android приложение собрано с `camera.ar` и `com.google.ar.core` как optional, чтобы устройства без ARCore не отсекались на уровне установки. Если Google Play Services for AR отсутствует или устарел, приложение предложит установить/обновить его до создания нативной AR-сессии.
+
+Локальный fork AR-плагина возвращает Android camera pose как матрицу из 16 чисел, совпадающую с Dart/iOS-контрактом. Поза берется из последнего штатного кадра ARCore, а экран ждет начала tracking до 5 секунд. Если старый APK постоянно показывал `ARCore еще не отдал позу камеры`, его нужно заменить свежей сборкой: прежняя версия проглатывала ошибку несовместимого типа и всегда получала `null` независимо от исправности камеры глубины.
+
+Android renderer применяет к загруженному `ModelNode` мировую позицию из camera transform и отдельно извлекает из матрицы требуемый размер модели. Это исправляет ситуацию, когда интерфейс сообщал `Модель закреплена перед камерой`, но узел оставался в начале координат и не был виден пользователю.
 
 Старый проект `Zerrant2/arsite` использовал другой подход: HTTPS-страницу с `<model-viewer ar ar-modes="webxr scene-viewer quick-look">`, принудительный переход в Chrome на Android при отсутствии WebXR и Quick Look для iOS. Если встроенный Flutter AR-плагин окажется нестабильным на тестовых устройствах, следующий путь - сделать такой же hosted WebAR viewer и открывать его из приложения через Chrome intent.
 
@@ -601,23 +620,30 @@ flutter build apk      build/app/outputs/flutter-apk/app-debug.apk
 - линия выбранного маршрута на карте;
 - пронумерованные точки маршрута поверх исторических объектов;
 - нижняя панель прогресса с текущей точкой, переходом назад/вперед и открытием карточки объекта;
+- ручная отметка посещенных точек, зеленые маркеры с галочкой и индикатор завершения;
+- восстановление прогресса после перезапуска через `SharedPreferences`;
+- загрузка опубликованных маршрутов из Supabase с fallback на `assets/data/routes.json`;
 - fallback-маршрут, если в данных нет объектов с ожидаемыми id.
 
-Пока маршруты задаются локальными шаблонами в сервисе. Следующий целевой шаг - хранить маршруты в Supabase и редактировать их через админку.
+Для серверных маршрутов нужно повторно применить `supabase/admin_mvp_schema.sql`: схема создает `heritage_routes` и `heritage_route_stops`. Пока таблицы пусты или схема не применена, клиент продолжает работать с локальным JSON. Следующий целевой шаг - добавить редактор маршрутов в админку, затем дорожную геометрию через backend proxy GraphHopper/OSRM.
 
 Ключевые файлы:
 
 ```text
 lib/core/models/heritage_route.dart
+lib/core/models/heritage_route_progress.dart
+lib/core/services/heritage_route_progress_service.dart
 lib/core/services/heritage_route_service.dart
+lib/data/repositories/heritage_routes_repository.dart
 lib/screens/map_screen.dart
 test/heritage_route_service_test.dart
+test/heritage_route_progress_service_test.dart
 ```
 
 Проверенное состояние после добавления:
 
 ```text
 flutter analyze        No issues found
-flutter test           27/27 tests passed
+flutter test           30/30 tests passed
 flutter build apk      build/app/outputs/flutter-apk/app-debug.apk
 ```

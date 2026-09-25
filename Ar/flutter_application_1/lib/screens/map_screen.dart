@@ -4,10 +4,13 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import '../core/models/heritage_route.dart';
+import '../core/models/heritage_route_progress.dart';
 import '../core/models/nearby_place.dart';
 import '../core/providers/objects_provider.dart';
+import '../core/services/heritage_route_progress_service.dart';
 import '../core/services/heritage_route_service.dart';
 import '../core/services/nearby_places_service.dart';
+import '../data/repositories/heritage_routes_repository.dart';
 import '../models/historical_object.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_decorations.dart';
@@ -23,6 +26,8 @@ class MapScreen extends StatefulWidget {
 class _MapScreenState extends State<MapScreen> {
   late MapController _mapController;
   final _nearbyPlacesService = NearbyPlacesService();
+  final _routesRepository = HeritageRoutesRepository();
+  final _routeProgressService = const HeritageRouteProgressService();
 
   HistoricalObject? _selectedObject;
   NearbyPlace? _selectedNearbyPlace;
@@ -32,8 +37,12 @@ class _MapScreenState extends State<MapScreen> {
   bool _showNearbyPanel = false;
   bool _showRoutesPanel = false;
   bool _isNearbyLoading = false;
+  bool _isRouteCatalogLoading = true;
+  bool _isSavingRouteProgress = false;
   int _currentRouteStep = 0;
   String? _nearbyError;
+  List<HeritageRoute> _routeTemplates = const [];
+  Map<String, HeritageRouteProgress> _routeProgressById = const {};
 
   final LatLng _volgogradCenter = const LatLng(48.7186, 44.5133);
   LatLng _nearbyCenter = const LatLng(48.7186, 44.5133);
@@ -44,6 +53,19 @@ class _MapScreenState extends State<MapScreen> {
     _mapController = MapController();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ObjectsProvider>().loadObjects();
+    });
+    _loadRouteState();
+  }
+
+  Future<void> _loadRouteState() async {
+    final templates = await _routesRepository.loadRoutes();
+    final progress = await _routeProgressService.loadAll();
+    if (!mounted) return;
+
+    setState(() {
+      _routeTemplates = templates;
+      _routeProgressById = progress;
+      _isRouteCatalogLoading = false;
     });
   }
 
@@ -131,10 +153,14 @@ class _MapScreenState extends State<MapScreen> {
   void _selectRoute(HeritageRoute route, List<HistoricalObject> objects) {
     final points = HeritageRouteService.routePoints(route, objects);
     final center = HeritageRouteService.routeCenter(points);
+    final progress = _routeProgressById[route.id];
+    final firstUnvisitedIndex = route.objectIds.indexWhere(
+      (objectId) => progress?.isVisited(objectId) != true,
+    );
 
     setState(() {
       _selectedRoute = route;
-      _currentRouteStep = 0;
+      _currentRouteStep = firstUnvisitedIndex < 0 ? 0 : firstUnvisitedIndex;
       _showRoutesPanel = false;
       _showNearbyPanel = false;
       _selectedObject = null;
@@ -143,6 +169,47 @@ class _MapScreenState extends State<MapScreen> {
 
     if (points.isNotEmpty) {
       _mapController.move(center, 13.4);
+    }
+  }
+
+  Future<void> _toggleRouteStopVisited(
+    HeritageRoute route,
+    HistoricalObject stop,
+  ) async {
+    if (_isSavingRouteProgress) return;
+
+    final current =
+        _routeProgressById[route.id] ?? HeritageRouteProgress.empty(route.id);
+    final wasCompleted = current.isCompleted;
+    setState(() => _isSavingRouteProgress = true);
+
+    try {
+      final updated = await _routeProgressService.toggleVisited(
+        route: route,
+        objectId: stop.id,
+        current: current,
+      );
+      if (!mounted) return;
+
+      setState(() {
+        _routeProgressById = {..._routeProgressById, route.id: updated};
+        _isSavingRouteProgress = false;
+      });
+
+      if (!wasCompleted && updated.isCompleted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Маршрут «${route.name}» завершен'),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isSavingRouteProgress = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Не удалось сохранить прогресс маршрута')),
+      );
     }
   }
 
@@ -186,7 +253,9 @@ class _MapScreenState extends State<MapScreen> {
   Widget build(BuildContext context) {
     final objectsProvider = context.watch<ObjectsProvider>();
     final objects = objectsProvider.allObjects;
-    final routes = HeritageRouteService.buildRoutes(objects);
+    final routes = _isRouteCatalogLoading
+        ? <HeritageRoute>[]
+        : HeritageRouteService.buildRoutes(objects, templates: _routeTemplates);
     final activeRoute = _activeRoute(routes);
     final routePoints = activeRoute == null
         ? <LatLng>[]
@@ -194,6 +263,10 @@ class _MapScreenState extends State<MapScreen> {
     final routeStops = activeRoute == null
         ? <HistoricalObject>[]
         : HeritageRouteService.routeObjects(activeRoute, objects);
+    final activeRouteProgress = activeRoute == null
+        ? null
+        : _routeProgressById[activeRoute.id] ??
+              HeritageRouteProgress.empty(activeRoute.id);
     final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
 
     return Scaffold(
@@ -302,6 +375,9 @@ class _MapScreenState extends State<MapScreen> {
                               child: _RouteStopMarker(
                                 index: index,
                                 isActive: index == _currentRouteStep,
+                                isVisited:
+                                    activeRouteProgress?.isVisited(object.id) ??
+                                    false,
                                 color:
                                     activeRoute?.theme.color ??
                                     AppColors.darkRed,
@@ -369,12 +445,15 @@ class _MapScreenState extends State<MapScreen> {
                     child: _RoutesPanel(
                       routes: routes,
                       selectedRoute: activeRoute,
+                      progressByRouteId: _routeProgressById,
+                      isLoading: _isRouteCatalogLoading,
                       bottomInset: bottomInset,
                       onClose: _toggleRoutesPanel,
                       onRouteTap: (route) => _selectRoute(route, objects),
                     ),
                   ),
                 if (activeRoute != null &&
+                    activeRouteProgress != null &&
                     !_showRoutesPanel &&
                     !_showNearbyPanel &&
                     _selectedObject == null)
@@ -385,11 +464,17 @@ class _MapScreenState extends State<MapScreen> {
                     child: _RouteProgressPanel(
                       route: activeRoute,
                       stops: routeStops,
+                      progress: activeRouteProgress,
                       currentIndex: _currentRouteStep,
+                      isSavingProgress: _isSavingRouteProgress,
                       onClose: _clearRoute,
                       onStopTap: (index) => _focusRouteStop(index, routeStops),
                       onOpenStop: (index) =>
                           _focusRouteStop(index, routeStops, openObject: true),
+                      onToggleVisited: (index) => _toggleRouteStopVisited(
+                        activeRoute,
+                        routeStops[index],
+                      ),
                     ),
                   ),
                 if (_showNearbyPanel)
@@ -635,11 +720,13 @@ class _LocationCard extends StatelessWidget {
 class _RouteStopMarker extends StatelessWidget {
   final int index;
   final bool isActive;
+  final bool isVisited;
   final Color color;
 
   const _RouteStopMarker({
     required this.index,
     required this.isActive,
+    required this.isVisited,
     required this.color,
   });
 
@@ -647,9 +734,16 @@ class _RouteStopMarker extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: isActive ? color : AppColors.whiteText,
+        color: isVisited
+            ? const Color(0xFF2E7D32)
+            : isActive
+            ? color
+            : AppColors.whiteText,
         shape: BoxShape.circle,
-        border: Border.all(color: color, width: isActive ? 3 : 2),
+        border: Border.all(
+          color: isVisited ? const Color(0xFF2E7D32) : color,
+          width: isActive ? 3 : 2,
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.2),
@@ -659,15 +753,17 @@ class _RouteStopMarker extends StatelessWidget {
         ],
       ),
       child: Center(
-        child: Text(
-          '${index + 1}',
-          style: TextStyle(
-            color: isActive ? AppColors.whiteText : color,
-            fontSize: 13,
-            fontWeight: FontWeight.w900,
-            fontFamily: 'Montserrat',
-          ),
-        ),
+        child: isVisited
+            ? const Icon(Icons.check, color: AppColors.whiteText, size: 18)
+            : Text(
+                '${index + 1}',
+                style: TextStyle(
+                  color: isActive ? AppColors.whiteText : color,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w900,
+                  fontFamily: 'Montserrat',
+                ),
+              ),
       ),
     );
   }
@@ -676,6 +772,8 @@ class _RouteStopMarker extends StatelessWidget {
 class _RoutesPanel extends StatelessWidget {
   final List<HeritageRoute> routes;
   final HeritageRoute? selectedRoute;
+  final Map<String, HeritageRouteProgress> progressByRouteId;
+  final bool isLoading;
   final double bottomInset;
   final VoidCallback onClose;
   final ValueChanged<HeritageRoute> onRouteTap;
@@ -683,6 +781,8 @@ class _RoutesPanel extends StatelessWidget {
   const _RoutesPanel({
     required this.routes,
     required this.selectedRoute,
+    required this.progressByRouteId,
+    required this.isLoading,
     required this.bottomInset,
     required this.onClose,
     required this.onRouteTap,
@@ -741,7 +841,9 @@ class _RoutesPanel extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 4),
-          if (routes.isEmpty)
+          if (isLoading)
+            const Expanded(child: Center(child: CircularProgressIndicator()))
+          else if (routes.isEmpty)
             const Expanded(
               child: Center(
                 child: Text(
@@ -765,6 +867,7 @@ class _RoutesPanel extends StatelessWidget {
                   return _RouteCard(
                     route: route,
                     isSelected: selectedRoute?.id == route.id,
+                    progress: progressByRouteId[route.id],
                     onTap: () => onRouteTap(route),
                   );
                 },
@@ -779,11 +882,13 @@ class _RoutesPanel extends StatelessWidget {
 class _RouteCard extends StatelessWidget {
   final HeritageRoute route;
   final bool isSelected;
+  final HeritageRouteProgress? progress;
   final VoidCallback onTap;
 
   const _RouteCard({
     required this.route,
     required this.isSelected,
+    required this.progress,
     required this.onTap,
   });
 
@@ -824,7 +929,15 @@ class _RouteCard extends StatelessWidget {
                     color: color.withValues(alpha: 0.14),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Icon(route.theme.icon, color: color, size: 21),
+                  child: Icon(
+                    progress?.isCompleted == true
+                        ? Icons.check
+                        : route.theme.icon,
+                    color: progress?.isCompleted == true
+                        ? const Color(0xFF2E7D32)
+                        : color,
+                    size: 21,
+                  ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -934,18 +1047,24 @@ class _RouteMetric extends StatelessWidget {
 class _RouteProgressPanel extends StatelessWidget {
   final HeritageRoute route;
   final List<HistoricalObject> stops;
+  final HeritageRouteProgress progress;
   final int currentIndex;
+  final bool isSavingProgress;
   final VoidCallback onClose;
   final ValueChanged<int> onStopTap;
   final ValueChanged<int> onOpenStop;
+  final ValueChanged<int> onToggleVisited;
 
   const _RouteProgressPanel({
     required this.route,
     required this.stops,
+    required this.progress,
     required this.currentIndex,
+    required this.isSavingProgress,
     required this.onClose,
     required this.onStopTap,
     required this.onOpenStop,
+    required this.onToggleVisited,
   });
 
   @override
@@ -957,6 +1076,9 @@ class _RouteProgressPanel extends StatelessWidget {
     final stop = stops[safeIndex];
     final hasPrevious = safeIndex > 0;
     final hasNext = safeIndex < stops.length - 1;
+    final visitedCount = progress.visitedCountFor(route.objectIds);
+    final completion = stops.isEmpty ? 0.0 : visitedCount / stops.length;
+    final isCurrentVisited = progress.isVisited(stop.id);
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -1010,6 +1132,33 @@ class _RouteProgressPanel extends StatelessWidget {
               fontSize: 13,
               fontWeight: FontWeight.w800,
             ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: completion,
+                    minHeight: 6,
+                    backgroundColor: color.withValues(alpha: 0.12),
+                    color: progress.isCompleted
+                        ? const Color(0xFF2E7D32)
+                        : color,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                '$visitedCount/${stops.length}',
+                style: const TextStyle(
+                  color: AppColors.blueText,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 10),
           Row(
@@ -1066,6 +1215,31 @@ class _RouteProgressPanel extends StatelessWidget {
                 onTap: () => onOpenStop(safeIndex),
               ),
             ],
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: isSavingProgress
+                  ? null
+                  : () => onToggleVisited(safeIndex),
+              icon: Icon(
+                isCurrentVisited ? Icons.undo : Icons.check_circle_outline,
+                size: 19,
+              ),
+              label: Text(
+                isCurrentVisited ? 'Снять отметку' : 'Отметить точку',
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isCurrentVisited ? AppColors.blueText : color,
+                foregroundColor: AppColors.whiteText,
+                disabledBackgroundColor: AppColors.greyBackground,
+                padding: const EdgeInsets.symmetric(vertical: 11),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
           ),
         ],
       ),

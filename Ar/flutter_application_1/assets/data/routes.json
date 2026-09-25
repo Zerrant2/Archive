@@ -1,0 +1,43 @@
+{
+  "routes": [
+    {
+      "id": "historic_center",
+      "name": "Исторический центр",
+      "description": "Короткий маршрут по центральным объектам города.",
+      "theme": "city",
+      "objectIds": ["nevsky_cathedral", "fire_tower", "mayak"]
+    },
+    {
+      "id": "memory_line",
+      "name": "Линия памяти",
+      "description": "Маршрут по местам, связанным с военной историей.",
+      "theme": "warMemory",
+      "objectIds": ["water_mill", "pavlov_house", "motherland"]
+    },
+    {
+      "id": "architecture_walk",
+      "name": "Архитектурная прогулка",
+      "description": "Разные эпохи и типы городской архитектуры.",
+      "theme": "architecture",
+      "objectIds": [
+        "nevsky_cathedral",
+        "fire_tower",
+        "water_mill",
+        "pavlov_house"
+      ]
+    },
+    {
+      "id": "city_highlights",
+      "name": "Главные точки",
+      "description": "Обзорный маршрут по ключевым местам MVP.",
+      "theme": "highlights",
+      "objectIds": [
+        "nevsky_cathedral",
+        "fire_tower",
+        "water_mill",
+        "pavlov_house",
+        "motherland"
+      ]
+    }
+  ]
+}

@@ -217,6 +217,18 @@ class _HistoricalExperienceScreenState
       return;
     }
 
+    final preflight = await ArExperienceLauncher.prepareEmbeddedAr();
+    if (!mounted) return;
+    if (!preflight.ready) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(preflight.message),
+          duration: const Duration(seconds: 4),
+        ),
+      );
+      return;
+    }
+
     await Navigator.push(
       context,
       MaterialPageRoute(

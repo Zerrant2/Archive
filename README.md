@@ -43,8 +43,8 @@ http://127.0.0.1:5176/#/studio
 ## Что Внутри
 
 - Flutter-приложение с картой, QR-сканером, панорамами и 3D/AR-просмотром.
-- MVP карты с историческими маршрутами и режимом “Места рядом”.
-- Встроенный MVP `AR-камера` для размещения серверной `.glb` модели перед камерой, Scene Viewer оставлен fallback.
+- Карта с историческими маршрутами, сохраняемым прогрессом и режимом “Места рядом”.
+- Встроенный MVP `AR-камера` с ARCore preflight и отключенным Depth API; Scene Viewer оставлен fallback.
 - Web-админка для объектов, эпох, панорам, QR и 3D/AR-моделей.
 - Supabase-схема MVP в `Ar/flutter_application_1/supabase/admin_mvp_schema.sql`.
 - Серверное хранение `.glb/.usdz` моделей через Supabase Storage.
@@ -64,7 +64,7 @@ F:\Flutter\flutter\bin\flutter.bat build apk --debug
 
 Не добавлять в репозиторий тяжелые локальные исходники и временные файлы: `.zip`, `.mp4`, `.glb`, `.usdz`, `.pptx`, `.docx`, логи и build-кэши. Для этого добавлен корневой `.gitignore`.
 
-Локальный Supabase-конфиг `Ar/flutter_application_1/assets/.env` тоже не коммитится. Для GitHub оставлен шаблон:
+Локальный Supabase/Gemini-конфиг `Ar/flutter_application_1/assets/.env` тоже не коммитится. Для GitHub оставлен шаблон; реальные `SUPABASE_*` и `GEMINI_API_KEY` должны храниться только в локальном файле:
 
 ```text
 Ar/flutter_application_1/assets/.env.example
@@ -73,6 +73,6 @@ Ar/flutter_application_1/assets/.env.example
 ## Recent MVP Additions
 
 - `Карта мест` получила режим “Места рядом”: nearby-маркеры, фильтры категорий и нижнюю панель с местами из Overpass API/fallback.
-- Добавлен MVP маршрутов: кнопка маршрутов в шапке карты, список маршрутов, линия на карте, пронумерованные точки и панель прогресса.
-- Кнопка `AR` в 3D-режиме теперь открывает встроенный экран `AR-камера`, а не сразу внешний Scene Viewer.
+- Маршруты загружаются из Supabase или `routes.json`; посещенные точки и завершение сохраняются локально.
+- Кнопка `AR` проверяет готовность ARCore до создания камеры, а локальный fork плагина не включает Depth API без явного запроса.
 - Свежий debug APK после проверок лежит в `Ar/flutter_application_1/build/app/outputs/flutter-apk/app-debug.apk`.
